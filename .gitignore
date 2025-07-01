@@ -1,0 +1,88 @@
+# =========================
+#  Django & Python
+# =========================
+
+*.log
+*.pot
+*.pyc
+*.py[cod]
+*$py.class
+__pycache__/
+
+# Local Django settings
+local_settings.py
+
+# DB & Media
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# Environments
+.env
+.venv
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+.Python
+
+# Bytecode & Build artifacts
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Jupyter Notebook 
+.ipynb_checkpoints
+
+# PyCharm, VSCode, IDE
+*.sublime*
+.DS_Store
+
+# pyenv (있으면)
+.python-version
+
+# C extensions
+*.so
+
+# =========================
+# React (Vite)
+# =========================
+
+node_modules/
+bower_components/
+logs/
+**/*.backup.*
+**/*.back.*
+
+# React 빌드 아웃풋
+dist/
+
+# MacOS
+.DS_*
+
+# Sketch, PSD 등 디자인 리소스
+*.psd
+*.sketch
