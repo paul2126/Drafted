@@ -1,0 +1,51 @@
+name: Notify Slack on Push
+
+on:
+  push:
+    branches:
+      - '**'  
+
+jobs:
+  slackNotify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Format commit messages
+        id: format
+        run: |
+          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
+          git log -n ${{ github.event.commits | length }} --pretty=format:"• <%H|%h> %s - %an" --abbrev-commit | while read line; do
+            COMMIT_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/$(echo $line | awk '{print $2}')"
+            echo "$line" | sed "s|<%H|<${COMMIT_URL}|"
+          done >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Send Slack Notification
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          curl -X POST -H 'Content-type: application/json' --data "{
+            \"blocks\": [
+              {
+                \"type\": \"section\",
+                \"text\": {
+                  \"type\": \"mrkdwn\",
+                  \"text\": \":rocket: *[${{ github.repository }}:${BRANCH_NAME }]* — *${{ github.event.commits | length }} new commits pushed by ${{ github.actor }}*\"
+                }
+              },
+              {
+                \"type\": \"divider\"
+              },
+              {
+                \"type\": \"section\",
+                \"text\": {
+                  \"type\": \"mrkdwn\",
+                  \"text\": \"${{ steps.format.outputs.COMMITS }}\"
+                }
+              }
+            ]
+          }" $SLACK_WEBHOOK_URL
