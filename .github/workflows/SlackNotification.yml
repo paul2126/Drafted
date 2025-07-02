@@ -15,10 +15,13 @@ jobs:
 
       - name: Format commit messages
         id: format
+        env:
+          COMMIT_COUNT: ${{ github.event.commits && github.event.commits != '' && length(github.event.commits) || 1 }}
         run: |
           echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
-          git log -n ${{ github.event.commits | length }} --pretty=format:"• <%H|%h> %s - %an" --abbrev-commit | while read line; do
-            COMMIT_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/$(echo $line | awk '{print $2}')"
+          git log -n $COMMIT_COUNT --pretty=format:"• <%H|%h> %s - %an" --abbrev-commit | while read line; do
+            COMMIT_HASH=$(echo "$line" | awk '{print $2}')
+            COMMIT_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${COMMIT_HASH}"
             echo "$line" | sed "s|<%H|<${COMMIT_URL}|"
           done >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
