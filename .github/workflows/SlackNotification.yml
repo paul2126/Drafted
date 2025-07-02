@@ -21,7 +21,7 @@ jobs:
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
 
            # commit_count
-          COMMIT_COUNT=$(echo '${{ toJson(github.event.commits) }}' | grep -o '{' | wc -l)
+          COMMIT_COUNT=$(echo '${{ toJson(github.event.commits) }}' | jq length)
           echo "commit_count=${COMMIT_COUNT}" >> $GITHUB_OUTPUT
           
           # commits: 한 줄에 한 커밋
@@ -55,7 +55,7 @@ jobs:
                     \"type\": \"section\",
                     \"text\": {
                       \"type\": \"mrkdwn\",
-                      \"text\": ${ESCAPED_COMMITS}
+                      \"text\": ${{ steps.format.outputs.commits }}
                     }
                   }
                 ]
