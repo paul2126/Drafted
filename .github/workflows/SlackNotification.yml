@@ -36,29 +36,33 @@ jobs:
         run: |
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
 
-          curl -X POST -H 'Content-type: application/json' --data "{
-            \"attachments\": [
-              {
-                \"color\": \"#36a64f\",
-                \"blocks\": [
-                  {
-                    \"type\": \"section\",
-                    \"text\": {
-                      \"type\": \"mrkdwn\",
-                      \"text\": \"[*[${{ steps.format.outputs.repo_name }}:${BRANCH_NAME}]* ${{ steps.format.outputs.commit_count }} new commits]\"
+          JSON_PAYLOAD=$(
+            echo '{
+              "attachments": [
+                {
+                  "color": "#36a64f",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "[*['${{ steps.format.outputs.repo_name }}':'${BRANCH_NAME}']* '${{ steps.format.outputs.commit_count }}' new commits]"
+                      }
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": '${{ steps.format.outputs.commits }}'
+                      }
                     }
-                  },
-                  {
-                    \"type\": \"divider\"
-                  },
-                  {
-                    \"type\": \"section\",
-                    \"text\": {
-                      \"type\": \"mrkdwn\",
-                      \"text\": ${{ steps.format.outputs.commits }}
-                    }
-                  }
-                ]
-              }
-            ]
-          }" $SLACK_WEBHOOK_URL
+                  ]
+                }
+              ]
+            }'
+          )
+      
+          echo "$JSON_PAYLOAD" | curl -X POST -H 'Content-type: application/json' --data @- $SLACK_WEBHOOK_URL
