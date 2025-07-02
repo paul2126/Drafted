@@ -13,22 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Determine commit count
-        id: count
-        run: echo "count=$(git rev-list --count HEAD ^HEAD~${{ github.event.commits && github.event.commits != null && fromJSON(toJSON(github.event.commits)) || '[]' }})" >> $GITHUB_OUTPUT
-
-      - name: Format commit messages
-        id: format
-        env:
-          COMMIT_COUNT: ${{ github.event.commits && github.event.commits != null && fromJSON(toJSON(github.event.commits)) && github.event.commits | size || 1 }}
-        run: |
-          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
-          git log -n $COMMIT_COUNT --pretty=format:"• <%H|%h> %s - %an" --abbrev-commit | while read line; do
-            COMMIT_HASH=$(echo "$line" | awk '{print $2}')
-            COMMIT_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${COMMIT_HASH}"
-            echo "$line" | sed "s|<%H|<${COMMIT_URL}|"
-          done >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Send Slack Notification
         env:
