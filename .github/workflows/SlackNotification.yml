@@ -3,7 +3,7 @@ name: Notify Slack on Push
 on:
   push:
     branches:
-      - '**'  
+      - '**'
 
 jobs:
   slackNotify:
@@ -13,71 +13,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-
       - name: Send Slack Notification
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+
           curl -X POST -H 'Content-type: application/json' --data "{
-            \"blocks\": [
+            \"attachments\": [
               {
-                \"type\": \"section\",
-                \"text\": {
-                  \"type\": \"mrkdwn\",
-                  \"text\": \":rocket: *[${{ github.repository }}:${BRANCH_NAME }]* — *${{ name: Notify Slack on Push
-
-on:
-  push:
-    branches:
-      - '**'  
-
-jobs:
-  slackNotify:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-
-      - name: Send Slack Notification
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          curl -X POST -H 'Content-type: application/json' --data "{
-            \"blocks\": [
-              {
-                \"type\": \"section\",
-                \"text\": {
-                  \"type\": \"mrkdwn\",
-                  \"text\": \":rocket: *[${{ github.repository }}:${BRANCH_NAME }]* — * new commits pushed by ${{ github.actor }}*\"
-                }
-              },
-              {
-                \"type\": \"divider\"
-              },
-              {
-                \"type\": \"section\",
-                \"text\": {
-                  \"type\": \"mrkdwn\",
-                  \"text\": \"${{ steps.format.outputs.COMMITS }}\"
-                }
-              }
-            ]
-          }" $SLACK_WEBHOOK_URL}} new commits pushed by ${{ github.actor }}*\"
-                }
-              },
-              {
-                \"type\": \"divider\"
-              },
-              {
-                \"type\": \"section\",
-                \"text\": {
-                  \"type\": \"mrkdwn\",
-                  \"text\": \"${{ steps.format.outputs.COMMITS }}\"
-                }
+                \"color\": \"#36a64f\",
+                \"blocks\": [
+                  {
+                    \"type\": \"section\",
+                    \"text\": {
+                      \"type\": \"mrkdwn\",
+                      \"text\": \":rocket: *[${{ github.repository }}:${BRANCH_NAME }]* — *New push by @${{ github.actor }}*\"
+                    }
+                  }
+                ]
               }
             ]
           }" $SLACK_WEBHOOK_URL
