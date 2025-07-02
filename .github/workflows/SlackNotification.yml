@@ -22,11 +22,12 @@ jobs:
 
            # commit_count
           COMMIT_COUNT=$(echo '${{ toJson(github.event.commits) }}' | grep -o '{' | wc -l)
-          echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+          echo "commit_count=${COMMIT_COUNT}" >> $GITHUB_OUTPUT
           
           # commits: 한 줄에 한 커밋
           COMMITS=$(git log -n ${COMMIT_COUNT} --pretty=format:"%h %s - %an")
-          echo "commits=${COMMITS}" >> $GITHUB_OUTPUT
+          ESCAPED_COMMITS=$(echo "$COMMITS" | jq -Rs .)
+          echo "commits=${ESCAPED_COMMITS}" >> $GITHUB_OUTPUT
           
       # Slack 알림 전송
       - name: Send Slack Notification
@@ -54,7 +55,7 @@ jobs:
                     \"type\": \"section\",
                     \"text\": {
                       \"type\": \"mrkdwn\",
-                      \"text\": \"$(echo '${{ steps.format.outputs.COMMITS }}' | sed 's/^/`/' | sed 's/$/'\"'`'/)\"
+                      \"text\": ${{ steps.format.outputs.commits }}
                     }
                   }
                 ]
