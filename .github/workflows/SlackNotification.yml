@@ -55,7 +55,7 @@ jobs:
                     \"type\": \"section\",
                     \"text\": {
                       \"type\": \"mrkdwn\",
-                      \"text\": ${{ steps.format.outputs.commits }}
+                      \"text\": ${ESCAPED_COMMITS}
                     }
                   }
                 ]
