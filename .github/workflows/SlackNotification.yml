@@ -25,7 +25,7 @@ jobs:
           echo "commit_count=${COMMIT_COUNT}" >> $GITHUB_OUTPUT
           
           # commits: 한 줄에 한 커밋
-          COMMITS=$(git log -n ${COMMIT_COUNT} --pretty=format:"%h %s - %an")
+          COMMITS=$(git log -n ${COMMIT_COUNT} --pretty=format:"• \`#%h\` %s - %an")
           ESCAPED_COMMITS=$(echo "$COMMITS" | jq -Rs .)
           echo "commits=${ESCAPED_COMMITS}" >> $GITHUB_OUTPUT
           
@@ -47,7 +47,7 @@ jobs:
                       "type": "section",
                       "text": {
                         "type": "mrkdwn",
-                        "text": "[*['${{ steps.format.outputs.repo_name }}':'${BRANCH_NAME}']* '${{ steps.format.outputs.commit_count }}' new commits]"
+                        "text": ":rocket:*['${{ steps.format.outputs.repo_name }}':'${BRANCH_NAME}']* '${{ steps.format.outputs.commit_count }}' new commits"
                       }
                     },
                     {
