@@ -13,6 +13,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # 커밋 리스트 포맷팅
+      - name: Format commit messages
+        id: format
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
+
+          # 커밋 개수 계산 (jq가 없으면 grep로 대체 가능)
+          COMMIT_COUNT=$(echo '${{ toJson(github.event.commits) }}' | grep -o '{' | wc -l)
+          echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+
+          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
+          git log -n ${COMMIT_COUNT} --pretty=format:"%h %s - %an" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      # Slack 알림 전송
       - name: Send Slack Notification
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -28,7 +44,17 @@ jobs:
                     \"type\": \"section\",
                     \"text\": {
                       \"type\": \"mrkdwn\",
-                      \"text\": \":rocket: *[${{ github.repository }}:${BRANCH_NAME}]* — *New push by @${{ github.actor }}*\"
+                      \"text\": \"[*[${{ steps.format.outputs.repo_name }}:${BRANCH_NAME}]* ${{ steps.format.outputs.commit_count }} new commits]\"
+                    }
+                  },
+                  {
+                    \"type\": \"divider\"
+                  },
+                  {
+                    \"type\": \"section\",
+                    \"text\": {
+                      \"type\": \"mrkdwn\",
+                      \"text\": \"$(echo '${{ steps.format.outputs.COMMITS }}' | sed 's/^/`/' | sed 's/$/'\"'`'/)\"
                     }
                   }
                 ]
