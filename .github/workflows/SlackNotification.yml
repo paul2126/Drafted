@@ -28,7 +28,7 @@ jobs:
                     \"type\": \"section\",
                     \"text\": {
                       \"type\": \"mrkdwn\",
-                      \"text\": \":rocket: *[${{ github.repository }}:${BRANCH_NAME }]* — *New push by @${{ github.actor }}*\"
+                      \"text\": \":rocket: *[${{ github.repository }}:${BRANCH_NAME}]* — *New push by @${{ github.actor }}*\"
                     }
                   }
                 ]
