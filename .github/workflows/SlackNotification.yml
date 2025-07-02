@@ -23,11 +23,12 @@ jobs:
           # 커밋 개수 계산 (jq가 없으면 grep로 대체 가능)
           COMMIT_COUNT=$(echo '${{ toJson(github.event.commits) }}' | grep -o '{' | wc -l)
           echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
-
+          {
           echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
           git log -n ${COMMIT_COUNT} --pretty=format:"%h %s - %an" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
+          echo "EOF" 
+          } >> $GITHUB_OUTPUT
+          
       # Slack 알림 전송
       - name: Send Slack Notification
         env:
