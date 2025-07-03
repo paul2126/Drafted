@@ -9,6 +9,9 @@ class AiSuggestion(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        db_table = "ai_suggestion"
+
 
 class AiAnalysis(models.Model):
     question_id = models.ForeignKey(QuestionList, on_delete=models.CASCADE)
@@ -16,3 +19,6 @@ class AiAnalysis(models.Model):
     useful = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "ai_analysis"
