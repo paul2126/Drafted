@@ -95,6 +95,10 @@ DATABASES = {
         "HOST": "aws-0-ap-northeast-2.pooler.supabase.com",
         "PORT": "5432",
         "POOL_MODE": "session",
+        # "OPTIONS": { # supabase schema access
+        #     # first search public, then auth
+        #     "options": "-c search_path=public,auth"
+        # },
     }
 }
 
