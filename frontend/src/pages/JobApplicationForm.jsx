@@ -4,6 +4,7 @@ import { StoryBoardButton, StoryLineButton } from "../components/NavigationBar";
 import QuestionInput from "../components/QuestionForm/QuestionInput";
 import { useModal } from "../context/ModalContext";
 import Modal from "../components/Modal/Modal";
+// Ensure you have the correct path to your CSS file
 
 const JobApplicationForm = ({ className = "" }) => {
   return (
@@ -20,7 +21,7 @@ const JobApplicationForm = ({ className = "" }) => {
             <StoryBoardButton></StoryBoardButton>
             <StoryLineButton></StoryLineButton>
           </div>
-          <h1 className="text-black text-[45px] font-black font-paperlogy text-left tracking-tight mb-[10px]">
+          <h1 className="text-black text-[45px] font-black paperlogy_9 text-left tracking-tight mb-[10px]">
             멋쟁이 사자처럼 13기 지원서
           </h1>
         </div>
@@ -37,7 +38,7 @@ const JobApplicationForm = ({ className = "" }) => {
                 } ${isPlus ? "w-[34px] h-[34px]" : "w-[73px] h-[34px]"}`}
               >
                 <span
-                  className={`text-xl font-semibold font-paperlogy ${
+                  className={`text-xl font-semibold paperlogy_6 ${
                     isActive ? "text-white" : "text-[#767676]"
                   }`}
                 >
@@ -51,7 +52,7 @@ const JobApplicationForm = ({ className = "" }) => {
 
       {/* 질문 섹션 */}
       <div className="px-[72px] mt-[40px] mb-[25px]">
-        <h2 className="text-black text-[22px] font-semibold font-paperlogy mb-[10px]">
+        <h2 className="text-black text-[22px] font-semibold paperlogy_6 mb-[10px]">
           질문
         </h2>
         <QuestionInput></QuestionInput>
@@ -59,7 +60,7 @@ const JobApplicationForm = ({ className = "" }) => {
       <Modal></Modal>
       {/* 답변 섹션 */}
       <div className="px-[73px] py-[30px]">
-        <h2 className="text-black text-[22px] font-semibold font-paperlogy mb-[10px]">
+        <h2 className="text-black text-[22px] font-semibold paperlogy_6 mb-[10px]">
           답변
         </h2>
         <div className="bg-[#fafafb] rounded-[15px] border border-black p-[25px]">
@@ -89,9 +90,9 @@ const JobApplicationForm = ({ className = "" }) => {
               <div key={idx}>
                 <div className="flex items-center gap-[6px] mb-[6px]">
                   <span className="text-xl">📍</span>
-                  <span className="font-semibold">{title}</span>
+                  <span className="font-semibold paperlogy_5">{title}</span>
                 </div>
-                <div className="bg-white border border-[#d1d5db] rounded-[10px] px-[14px] py-[10px] leading-[24px] whitespace-pre-line">
+                <div className="bg-white border border-[#d1d5db] rounded-[10px] px-[14px] py-[10px] paperlogy_5 leading-[24px] whitespace-pre-line">
                   {content}
                 </div>
               </div>
@@ -102,7 +103,7 @@ const JobApplicationForm = ({ className = "" }) => {
 
       {/* 태그 */}
       <div className="px-[70px] pb-[62px]">
-        <div className="flex justify-between">
+        <div className="flex justify-between gap-[20px]">
           {[
             "분량에 맞춰 간결하게",
             "자연스러운 문장으로",
@@ -115,7 +116,7 @@ const JobApplicationForm = ({ className = "" }) => {
                 i === 3 ? "bg-[#ffb38a]" : "bg-[#e4e8ee]"
               } rounded-[15px] border border-black py-[20px] w-[266px] flex items-center justify-center`}
             >
-              <span className="text-black text-[22px] font-semibold font-paperlogy">
+              <span className="text-black text-[22px] font-semibold paperlogy_6">
                 {text}
               </span>
             </div>
