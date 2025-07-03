@@ -14,7 +14,7 @@ const QuestionInput = ({ className = "", applicationId, questionId }) => {
   const handleSubmit = async () => {
     try {
       const response = await axios.post(
-        "https://54.196.221.162:8000/api/ai/analyze/",
+        "http://54.196.221.162:8000/api/ai/analyze/",
         {
           application_id: applicationId,
           question_id: questionId,
