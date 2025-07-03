@@ -1,5 +1,6 @@
 // 리스트 항목들 분리
 import { StateButton } from "../components/";
+import { Link } from "react-router-dom";
 
 export const ApplicationRow = ({ applications }) => {
   return (
@@ -13,23 +14,24 @@ export const ApplicationRow = ({ applications }) => {
             </div>
 
             {/* Application Title */}
-            {/* Todo: 클릭 시 페이지 이동 (navigate) */}
-            <div className="w-[435px] px-2 flex justify-center">
-              <span className="text-[22px] font-normal text-black text-center">
-                {app.title}
-              </span>
-            </div>
+            <Link to="/storylinedetail">
+              <div className="w-[500px] px-2 flex justify-center">
+                <span className="text-[20px] text-black text-center">
+                  {app.title}
+                </span>
+              </div>
+            </Link>
 
             {/* Deadline */}
-            <div className="w-[169px] px-2 flex justify-center">
-              <span className="text-[22px] font-normal text-black text-center">
+            <div className="w-[180px] px-2 flex justify-center">
+              <span className="text-[20px]  text-black text-center">
                 {app.deadline}
               </span>
             </div>
 
             {/* Category */}
-            <div className="w-[162px] px-2 flex justify-center">
-              <span className="text-[22px] font-normal text-black text-center whitespace-pre-line">
+            <div className="w-[250px] px-2 flex justify-center">
+              <span className="text-[20px]  text-black text-center whitespace-pre-line">
                 {app.category}
               </span>
             </div>
