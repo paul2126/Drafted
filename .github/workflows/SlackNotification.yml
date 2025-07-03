@@ -26,8 +26,14 @@ jobs:
           
           # commits: 한 줄에 한 커밋
           COMMITS=$(git log -n ${COMMIT_COUNT} --pretty=format:"• \`#%h\` %s - %an")
-          ESCAPED_COMMITS=$(echo "$COMMITS" | jq -Rs .)
-          echo "commits=${ESCAPED_COMMITS}" >> $GITHUB_OUTPUT
+          #ESCAPED_COMMITS=$(echo "$COMMITS" | jq -Rs .)
+          #echo "commits=${ESCAPED_COMMITS}" >> $GITHUB_OUTPUT
+          # 멀티라인
+          {
+            echo "commits<<EOF"
+            echo "$COMMITS"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
           
       # Slack 알림 전송
       - name: Send Slack Notification
@@ -35,35 +41,41 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          CLEAN_COMMITS=$(echo '${{ steps.format.outputs.commits }}' | jq -r .)
-
-          JSON_PAYLOAD=$(
-            echo '{
-              "attachments": [
+          REPO_NAME="${{ steps.format.outputs.repo_name }}"
+          COMMIT_COUNT="${{ steps.format.outputs.commit_count }}"
+          CLEAN_COMMITS="${{ steps.format.outputs.commits }}"
+      
+          echo "=== Debug ==="
+          echo "$CLEAN_COMMITS"
+      
+          jq -n \
+            --arg repo "$REPO_NAME" \
+            --arg branch "$BRANCH_NAME" \
+            --arg commits "$CLEAN_COMMITS" \
+            --arg count "$COMMIT_COUNT" \
+            '{
+              attachments: [
                 {
-                  "color": "#36a64f",
-                  "blocks": [
+                  color: "#36a64f",
+                  blocks: [
                     {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": ":rocket:*['${{ steps.format.outputs.repo_name }}':'${BRANCH_NAME}']* '${{ steps.format.outputs.commit_count }}' new commits"
+                      type: "section",
+                      text: {
+                        type: "mrkdwn",
+                        text: ":rocket:*[\($repo):\($branch)]* \($count) new commits"
                       }
                     },
                     {
-                      "type": "divider"
+                      type: "divider"
                     },
                     {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text":  "'"${CLEAN_COMMITS}"'"
+                      type: "section",
+                      text: {
+                        type: "mrkdwn",
+                        text: $commits
                       }
                     }
                   ]
                 }
               ]
-            }'
-          )
-      
-          echo "$JSON_PAYLOAD" | curl -X POST -H 'Content-type: application/json' --data @- $SLACK_WEBHOOK_URL
+            }' | curl -X POST -H 'Content-type: application/json' --data @- $SLACK_WEBHOOK_URL
