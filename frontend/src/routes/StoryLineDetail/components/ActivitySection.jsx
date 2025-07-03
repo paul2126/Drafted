@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { dummy } from "@/data/dummy";
+//import { dummy } from "@/data/dummy";
 import axios from "axios";
 import { useModal } from "../context/ModalContext";
 
