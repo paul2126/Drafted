@@ -7,6 +7,7 @@ export const ModalProvider = ({ children }) => {
   const open = () => setIsOpen(true);
   const close = () => setIsOpen(false);
   const toggle = () => setIsOpen((prev) => !prev);
+  const [response, setResponse] = useState(null);
 
   return (
     <ModalContext.Provider value={{ isOpen, open, close, toggle }}>

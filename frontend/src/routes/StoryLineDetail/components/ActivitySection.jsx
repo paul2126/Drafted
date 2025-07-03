@@ -7,11 +7,14 @@ const ActivitySection = () => {
   //const activities = dummy.activity_list;
   const [activities, setActivities] = useState([]);
   const { isOpen } = useModal();
+  const { response } = useModal();
 
   useEffect(() => {
     const fetchActivityData = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/api/post/");
+        const response = await axios.get(
+          "http://54.196.221.162:8000/api/post/"
+        );
         const data = response.data;
 
         if (data.activity_list) {
@@ -26,7 +29,7 @@ const ActivitySection = () => {
     if (isOpen) {
       fetchActivityData(); // 모달이 열렸을 때만 fetch
     }
-  }, [isOpen]);
+  }, [response]);
 
   return (
     <>

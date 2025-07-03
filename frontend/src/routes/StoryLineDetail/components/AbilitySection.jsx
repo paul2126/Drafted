@@ -7,11 +7,14 @@ const AbilitySection = () => {
   //const abilities = dummy.ability_list;
   const [abilities, setAbilities] = useState([]);
   const { isOpen } = useModal();
+  const { response } = useModal();
 
   useEffect(() => {
     const getPostAPI = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/api/post/");
+        const response = await axios.get(
+          "http://54.196.221.162:8000/api/post/"
+        );
         const data = response.data;
 
         // ability_list가 존재하는지 확인 후 상태 업데이트
@@ -27,7 +30,7 @@ const AbilitySection = () => {
     if (isOpen) {
       getPostAPI(); // 모달이 열렸을 때만 fetch
     }
-  }, [isOpen]);
+  }, [response]);
 
   return (
     <div className="mb-[70px]">
