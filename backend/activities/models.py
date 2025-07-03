@@ -6,7 +6,7 @@ from users.models import Profile
 
 
 class ActivityEmbedding(models.Model):
-    user_id = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
     metadata = models.JSONField(null=True, blank=True)
     content = models.TextField(null=True, blank=True)
     embedding = VectorField(dimensions=3072)
@@ -19,7 +19,7 @@ class ActivityEmbedding(models.Model):
 
 
 class Activity(models.Model):
-    user_id = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
     favorite = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
