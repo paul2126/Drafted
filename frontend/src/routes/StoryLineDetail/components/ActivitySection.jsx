@@ -6,30 +6,37 @@ import { useModal } from "../context/ModalContext";
 const ActivitySection = () => {
   //const activities = dummy.activity_list;
   const [activities, setActivities] = useState([]);
-  const { isOpen } = useModal();
-  const { response } = useModal();
-
+  const { isOpen, aiResponse } = useModal();
+  //const { response } = useModal();
   useEffect(() => {
-    const fetchActivityData = async () => {
-      try {
-        const response = await axios.get(
-          "http://54.196.221.162:8000/api/post/"
-        );
-        const data = response.data;
-
-        if (data.activity_list) {
-          setActivities(data.activity_list);
-        } else {
-          console.warn("activity_list가 응답에 없습니다:", data);
-        }
-      } catch (error) {
-        console.error("ActivitySection API 호출 실패:", error);
+    if (isOpen && aiResponse) {
+      // Assuming the response contains activity_list
+      if (aiResponse.activity_list) {
+        setActivities(aiResponse.activity_list);
       }
-    };
-    if (isOpen) {
-      fetchActivityData(); // 모달이 열렸을 때만 fetch
     }
-  }, [response]);
+  }, [isOpen, aiResponse]);
+  // useEffect(() => {
+  //   const fetchActivityData = async () => {
+  //     try {
+  //       const response = await axios.get(
+  //         "http://54.196.221.162:8000/api/post/"
+  //       );
+  //       const data = response.data;
+
+  //       if (data.activity_list) {
+  //         setActivities(data.activity_list);
+  //       } else {
+  //         console.warn("activity_list가 응답에 없습니다:", data);
+  //       }
+  //     } catch (error) {
+  //       console.error("ActivitySection API 호출 실패:", error);
+  //     }
+  //   };
+  //   if (isOpen) {
+  //     fetchActivityData(); // 모달이 열렸을 때만 fetch
+  //   }
+  // }, [response]);
 
   return (
     <>

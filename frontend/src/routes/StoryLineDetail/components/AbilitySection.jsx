@@ -6,31 +6,38 @@ import { useModal } from "../context/ModalContext";
 const AbilitySection = () => {
   //const abilities = dummy.ability_list;
   const [abilities, setAbilities] = useState([]);
-  const { isOpen } = useModal();
-  const { response } = useModal();
-
+  const { isOpen, aiResponse } = useModal();
+  //const { response } = useModal();
   useEffect(() => {
-    const getPostAPI = async () => {
-      try {
-        const response = await axios.get(
-          "http://54.196.221.162:8000/api/post/"
-        );
-        const data = response.data;
-
-        // ability_list가 존재하는지 확인 후 상태 업데이트
-        if (data.ability_list) {
-          setAbilities(data.ability_list);
-        } else {
-          console.warn("ability_list가 응답에 없습니다:", data);
-        }
-      } catch (error) {
-        console.error("API 호출 중 에러 발생:", error);
+    if (isOpen && aiResponse) {
+      // Assuming the response contains ability_list
+      if (aiResponse.ability_list) {
+        setAbilities(aiResponse.ability_list);
       }
-    };
-    if (isOpen) {
-      getPostAPI(); // 모달이 열렸을 때만 fetch
     }
-  }, [response]);
+  }, [isOpen, aiResponse]);
+  // useEffect(() => {
+  //   const getPostAPI = async () => {
+  //     try {
+  //       const response = await axios.get(
+  //         "http://54.196.221.162:8000/api/post/"
+  //       );
+  //       const data = response.data;
+
+  //       // ability_list가 존재하는지 확인 후 상태 업데이트
+  //       if (data.ability_list) {
+  //         setAbilities(data.ability_list);
+  //       } else {
+  //         console.warn("ability_list가 응답에 없습니다:", data);
+  //       }
+  //     } catch (error) {
+  //       console.error("API 호출 중 에러 발생:", error);
+  //     }
+  //   };
+  //   if (isOpen) {
+  //     getPostAPI(); // 모달이 열렸을 때만 fetch
+  //   }
+  // }, [isOpen, aiResponse]);
 
   return (
     <div className="mb-[70px]">
