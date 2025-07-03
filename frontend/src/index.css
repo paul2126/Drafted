@@ -1,5 +1,14 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Paperlogy";
+  src: url("/src/assets/fonts/Paperlogy-9Black.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Paperlogy", system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -24,7 +33,6 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
