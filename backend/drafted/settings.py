@@ -91,7 +91,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": "postgres",
         "USER": "postgres.mrvlbmofbrjgvnwdlwjk",
-        "PASSWORD": "drafted0703",
+        "PASSWORD": env("DB_PASSWORD"),  # from .env
         "HOST": "aws-0-ap-northeast-2.pooler.supabase.com",
         "PORT": "5432",
         "POOL_MODE": "session",
@@ -143,3 +143,7 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+VERTEX_PROJECT_ID = env("PROJECT_ID")
+VERTEX_LOCATION = env("REGION")
