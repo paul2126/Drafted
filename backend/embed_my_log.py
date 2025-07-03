@@ -1,0 +1,93 @@
+from openai import OpenAI
+import environ
+import tiktoken
+from supabase import create_client, Client
+from pathlib import Path
+import os
+from datetime import datetime
+
+tokenizer = tiktoken.get_encoding("cl100k_base")  # For embedding-3 models
+env = environ.Env()
+
+environ.Env.read_env(env_file=os.path.join(os.path.dirname(__file__), ".env"))
+# print(os.path.join(os.path.dirname(__file__), ".env"))
+
+SUPABASE_URL = env("DB_URL")
+SUPABASE_KEY = env("DB_KEY")
+
+client = OpenAI(api_key=env("OPENAI_KEY"))
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+text = [
+    "Name: 대학신문\nDescription: 2022년 3월부터 2024년 11월까지 취재부 평기자, 차장, 편집장, 뉴미 디어부 콘텐츠 기자로 활동함\nPosition: 편집장\nEvent Role: 현황 진단 및 문제 정의\nEvent Category: 문제해결능력, 조직관리역량, 분석력\nEvent Data:\n  Background: 사설 제작 주기가 길고 오류가  잦다는 문제를 해결하기 위해 현행 프로세스를 파악하고 병목 구간을 찾음.\n  My Action: 기존 부서들의 사설 작성 프로세스를 추적하고 업무 충돌 및 리소스가 과하게 투입되는 지점 확인 및 개선안 도출\n이전 기수 선배들 및 대학신문사에 오래 머문 간사단과 소통함으로써 제시한 해결책이 적절한 방향성 인지 점검\n자문위원 교수 및 행정실에게 사전 문건을 공유하고 두 차례의 전사 내부 회의를 토대로 프로세스 개선에 합의 도출\n  Result: 사설 퇴고가 완료되는 시점이 주말에서 금요일로 1일 단축, 데스 크 부담 경감으로 업무 효율성 상승, 기자단 및 자문위원 만족도 상승.\n  Reflection: 기존의 방식을 무조건 지키려고 하기보다 효율적으로 대응할 수 있는 방법을 적극적으로 찾아야 한다는 점을 배움.\n",
+    "Name: 대학신문\nDescription: 2022년 3월부터 2024년 11월까지 취재부 평기자, 차장, 편집장, 뉴미디어부 콘텐츠 기자로 활동함\nPosition: 편집장\nEvent Role: 전 기수 대상 홈커밍 프로젝트 기획\nEvent Category: 기획력, 추진 및 진행력, 관계관리역량\nEvent Data:\n  Background: 코로나19 이후로  선후배 간 단절이 심화되고, 대학신문 활동의 지속성과 유대감이 약화되고 있다는 문제의식을 바탕으로, 졸업한 선배들과의 재접점을 마련하고자 함.\n  My Action: 전 기수 명단을 확보하고 이메일·SNS를  통해 연락망을 복원함. 행사 목적과 참여방식을 정리한 안내문과 참여 설문지를 발송하였으며, 학교 공간 대관, 프로그램 기획(토크콘서트, 전시, 네트워킹 세션)을 총괄 기획함.\n  Result: 총 12개 기수, 60여 명의 졸업생이 참여하여, 신입기수 10명과의 교류가 성사됨. 이후 멘토링·취재 협조 등 협업 기반을 구축하게 되었고, 내부 구성원 만족도 4.8/5로 기록.\n  Reflection: 커뮤니티가 단절될 경우 구성 원 이탈로 이어질 수 있음을 체감했고, 기획 초기부터 '공감 가는 명분'과 '참여 진입장벽 최소화'가  성공의 핵심임을 배움.\n",
+    "Name: SNEW 학회\nDescription: 뉴미디어 마케팅 학회에서 학회원으로 활 동하며 다양한 스타트업과 마케팅 실무 프로젝트 경험\nPosition: 학회원\nEvent Role: 팀장\nEvent Category: 콘텐츠 기획력, 인사이트 도출, 디지털 채널 운영 역량\nEvent Data:\n  Background: S2엔터테인먼트는 신인 아티스트의 브랜드 메시지인 'BORN TO BE XX'를 중심으로 숏폼 콘텐츠 챌린지와 세계관 기반 스토리텔링 전략을 수립하였으며, 컴백 초기 단계의 팬 유입과 화제성 증대를 위한 온고잉 성과  보고가 필요해짐.\n  My Action: 틱톡, 유튜브 쇼츠, 인스타 릴스를 중심으로 각 플랫폼별 콘텐츠 퍼포먼스를 모니터링하고, 해시태그 사용량, 참여율, 팬 피드백을 기반으로 주요 지표를 정리함.\n챌린지  참여율이 높았던 ‘손가락 안무’, ‘립싱크 리액션’ 콘텐츠 유형의 확장 방향을 제안하였으며, 세계관 관련 추측 콘텐츠에 대한 팬 커뮤니티 반응을 수집해 서브 콘텐츠 방향성을 구체화함.\n  Result: 틱톡  해시태그 조회수 11,000,000회 돌파, 챌린지 참여 영상 약 3,800건 생성.\n팬 커뮤니티 내 세계관 해석 콘텐츠 약 250건 파생되었으며, 2차 창작 기반 팬 유입 및 전환율이 증가함.\n해외 Z세대 대상 신규  팔로워 비율이 28%로 상승.\n  Reflection: 틱톡을 중심으로 한 숏폼 콘텐츠는 팬과 일반 대중 모두의 자발적 확산을 유도하는 데 효과적임을 확인함. 세계관의 빈칸을 남긴 콘텐츠 전략은 팬의 몰입을 높이며, 참여 기반 브랜딩에 긍정적임을 체감함.\n",
+    "Name: SNEW 학회\nDescription: 뉴미디어 마케팅 학 회에서 학회원으로 활동하며 다양한 스타트업과 마케팅 실무 프로젝트 경험\nPosition: 학회원\nEvent Role: 개인 프로젝트로 전체 전담\nEvent Category: 캠페인 설계 능력, 기획력, 브랜드 감수성 고려\nEvent Data:\n  Background: 소유의 신곡 ‘Aloha’ 발매를 앞두고, ‘썸머퀸’ 이미지 강화와 2010년대 향 수 마케팅을 접목한 다양한 콘텐츠와 채널 연계를 통해 팬과 대중의 초기 반응을 유도하고자 함.\n  My Action: 뮤직비디오 콘셉트, 다이어트 댄스 챌린지, 팝업스토어 기획 등 온·오프라인 연계 프로모션을 설계하고, 콘텐츠별 퍼포먼스를 중간 점검함.\n운동 유튜버와의 챌린지 협업, 씨스타와 연계한 추억  안무 챌린지 제안, 리무진서비스 등 유튜브 콘텐츠 타깃 출연 전략을 구성.\n  Result: 틱톡 기준 ‘#소유알로하’ 챌린지 영상 2,100건 이상 업로드. ‘짬에서 나오는 바이브’ 콘셉트에 대한 팬 공감 댓글 다 수 확보.\n팝업스토어 인스타그램 사전 팔로워 3,000명 이상, 여름휴가지 테마 굿즈 사전 관심도 증가.\n  Reflection: 과거 정체성을 긍정적으로 계승하면서도 새로운 콘셉트를 제시할 때, 콘텐츠 기획 전 반에 ‘공감 가능한 맥락’과 ‘가벼운 진입장벽’이 매우 중요함을 실감함.\n",
+    "Name: 교내 IT동아리\nDescription: 2023년부터 교내 IT 동아리에서 프론트엔드 팀장을 맡으며 프로젝트 개발 및 멘토링 진행\nPosition: 프론트엔드 팀장\nEvent Role: 기획 및 프론트엔드 개발\nEvent Category: 기술 구현 능력, 문제해결능력, 리더십\nEvent Data:\n  Background: 신입생들의 길찾기 문제를 해결하기 위해 캠퍼스  맵 앱을 개발하기로 함.\n  My Action: 지도 API를 연동하고, 건물 검색 및 경로 탐색 기능을 프론트엔드에서 구현.\n팀원들과 UI/UX 회의를 통해 직관적인 화면 설계 방향을 도출.\n  Result: 약 500명의  신입생이 앱을 다운로드해 사용했으며, 만족도 조사에서 평균 4.6/5의 점수를 획득.\n  Reflection: 기술적 완성도뿐만 아니라 사용자 경험을 고려한 기획의 중요성을 배움.\n",
+    "Name: 교내 IT동아리\nDescription: 2023년부터 교내 IT 동아리에서 프론트엔드 팀장을 맡으며 프로젝트 개발 및 멘토링 진행\nPosition: 프론트엔드 팀장\nEvent Role: 멘토 및 프로그램 기획\nEvent Category: 리더십, 교육기획력, 커뮤니케이션 능력\nEvent Data:\n  Background: 신입 회원들의 개발 적응을 돕고자, 체계적인 멘토링 프로그램 필요성이 제기됨.\n  My Action: 기수별 학습 로드맵을 설계하고, 주간 코드리뷰 및 실습 중 심의 스터디 운영.\n멘토-멘티 피드백 세션을 통해 개선 방향을 주기적으로 점검함.\n  Result: 멘티 15명 중 13명이 자체 프로젝트를 완성했고, 이후 정규 개발팀으로 합류함.\n  Reflection: 개인의 성장 을 돕는 과정에서도 체계적 피드백 구조가 중요하다는 점을 체감함.\n",
+    "Name: 해외 인턴십 프로그램\nDescription: 2024년 여름, 싱가포르 기반 스타트업에서 콘텐츠 마케터 인턴으로 활동\nPosition: 콘 텐츠 마케터 인턴\nEvent Role: 콘텐츠 제작 및 KPI 분석\nEvent Category: 콘텐츠 기획력, 분석력, 디지털 마케팅 역량\nEvent Data:\n  Background: B2C 유저 유입을 위해 제품 소개 콘텐츠의 도달률 개선이 필요했음.\n  My Action: 랜딩페이지 개선, 인스타그램 릴스, 유튜브 쇼츠 기획 및 성과 리포트 작 성.\n  Result: 콘텐츠 평균 클릭률 2.1% → 4.8%로 개선, 월간 팔로워 500명 증가.\n  Reflection: 단 순 조회수가 아니라 KPI 목표에 따라 콘텐츠 전략을 맞추는 경험을 함.\n",
+    "Name: 문화기획동아리 Re:Scene\nDescription: 대학 내 문화 기획 동아리로, 전시·공연·커뮤니티 행사 기획과 운영을 경험함\nPosition: 부회장\nEvent Role: 전시 총괄 기획\nEvent Category: 콘텐츠 기획력, 프로젝트 관리, 팀워크\nEvent Data:\n  Background: 동아리 외부 인지도가 낮아 방문객 유입이 저조하고, 활동 성과를 대외 적으로 알릴 기회가 부족했음. 이에 소규모 전시회를 통해 브랜드 인지도를 높이고자 함.\n  My Action: 주제 선정부터 공간 대관, 작품 섭외, SNS 홍보까지 전 과정 총괄. 특히 대학가 커뮤니티와 협업하여 콘텐츠 홍보 파트너십을 체결함.\n운영 매뉴얼 작성, 관람객 동선 설계, 기획의도 설명 영상 제작 등 관람 경험 향상에 주력함.\n  Result: 총 1,200명 관람, SNS 해시태그 약 5,000회 노출 달성.\n동아리 인스타그램 팔로워 수 전월 대비 2.3배 증가. 내부 만족도 조사 결과 4.7/5로 나타남.\n  Reflection: 소규모라도 기획의 완성도가 중요하며, ‘누구를 위한 기획인가’를 꾸준히 고민해야 함을 느낌.\n",
+    "Name: 문화기획동아리 Re:Scene\nDescription: 대학 내 문화 기획 동아리로, 전시·공연·커뮤니티 행사 기획과 운영을 경험함\nPosition: 부회장\nEvent Role: 행사 운영 책임자\nEvent Category: 관계관리역량, 이벤트 운영, 의사소통 능력\nEvent Data:\n  Background: 코로나19 이후 동아리 구성원 간 교류가  적어 친밀도가 크게 낮아짐. 내부 결속을 다지고 신규 회원의 소속감을 높이기 위한 내부 네트워킹 프 로그램이 필요했음.\n  My Action: 소규모 모임별 콘셉트를 기획하고, 멤버별 관심사 기반 그룹을 구성. 프로그램 진행자 매뉴얼 제작 및 현장 진행을 총괄함.\n후속 설문조사를 통해 향후 정기모임 기획에 반영할 피드백을 수집함.\n  Result: 총 60명 참가, 신규회원 10명이 활동 유지 의사를 밝힘.\n행사 후 내부 만족도 4.9/5 기록. 향후 정기 프로그램 예산 배정이 확정됨.\n  Reflection: 소통의 밀도가 동 아리의 생명이라는 점을 실감했고, 기획 초기에 니즈 조사가 매우 중요하다는 것을 배움.\n",
+    "Name: Insight Maker Lab\nDescription: 데이터 기반 인사이트 도출을 중심으로 다양한 실전 프로젝트와 발표 경험 보유\nPosition: 데이터 애널리스트\nEvent Role: 데이터 분석 및 리포트 작성\nEvent Category: 데이터 분석, 인사이트 도출, 문서화 능력\nEvent Data:\n  Background: 국내외 뷰티 브랜드의 제품 개발 방향성을 위해 SNS에서 떠오르는 뷰티 트렌드 키워드를 파악하고, 소비자 반응의 정성적 데이터를  수집·분석할 필요가 있었음.\n  My Action: 인스타그램, 유튜브, 블로그의 크롤링 데이터를 수집 후 NLP 기반 키워드 분석을 수행함.\n뷰티 트렌드 키워드를 5가지 테마로 분류하고, 각 테마별 소비자 언급 량과 감성 분석 결과를 시각화하여 리포트화함.\n  Result: 뷰티 브랜드 마케팅팀에 30페이지 규모 인 사이트 리포트 제출. 특정 키워드 기반 신제품 컨셉 기획이 이어졌음.\n브랜드 내부 평가에서 ‘활용도 가 높다’는 피드백을 받음.\n  Reflection: 데이터가 방대할수록 분석 목적을 분명히 잡는 것이 중요하며, 단순 수치보다 ‘맥락’을 담아야 한다는 점을 배움.\n",
+    "Name: Insight Maker Lab\nDescription:  데이터 기반 인사이트 도출을 중심으로 다양한 실전 프로젝트와 발표 경험 보유\nPosition: 데이터 애 널리스트\nEvent Role: 데이터 시각화 및 발표 담당\nEvent Category: 데이터 시각화, 프리젠테이션 스킬, 문제 해결 능력\nEvent Data:\n  Background: 신규 음료 브랜드가 인스타그램과 틱톡을 중심으로  진행한 SNS 캠페인의 효율성을 측정하고, 예산 대비 효과를 검증할 필요가 있었음.\n  My Action: 도달수, 클릭률, 해시태그 노출량, 사용자 반응 등을 수집하고 Tableau로 대시보드를 구축함.\n성과 지표별 상관관계를 분석해 개선 포인트를 제시하고, 팀 발표 자료를 제작함.\n  Result: 캠페인 비용 대비 ROI를 1.6배 높일 수 있는 개선안을 도출.\n클라이언트로부터 후속 분석 요청을 받아 프로젝트 연장 진행.\n  Reflection: 데이터 설명을 ‘쉽게 풀어내는 기술’이 설득력에 핵심이라는 점을 배움.\n",
+    "Name: DevBoost 스터디\nDescription: 웹 개발자 커뮤니티 기반의 기술 학습 스터디에서 프론트엔드 개발과  협업 툴 사용을 집중적으로 학습\nPosition: 프론트엔드 리더\nEvent Role: 프론트엔드 개발 총괄\nEvent Category: 프론트엔드 개발, UI/UX 설계, 문제 해결 능력\nEvent Data:\n  Background: 스터디 팀  내 일정 관리, 이슈 공유, 코드 리뷰 등을 통합할 수 있는 툴이 부재했음. 개발자 간 커뮤니케이션 비 효율을 줄이고자 협업 툴 개발을 기획함.\n  My Action: React, Redux, Styled Components로 프론트엔 드 구조를 설계하고, 사용성을 높이기 위해 사용자 플로우를 반복 테스트함.\nGitHub OAuth 연동, 실시간 업데이트 기능(Socket.io)도 구현하여 협업 편의성을 강화.\n  Result: 최종 배포 버전 기준 스터디 멤버 12명이 실제로 툴을 사용하며 기능적 만족도 평균 4.6/5 기록.\nGitHub 이슈 관리 대비 소통 시 간이 약 40% 단축됨.\n  Reflection: 복잡한 기능도 사용자 관점에서 단순화해야 함을 느꼈고, 개발 도중 의사소통 기록을 남기는 것이 협업에서 중요하다는 점을 배움.\n",
+    "Name: DevBoost 스터디\nDescription: 웹 개발자 커뮤니티 기반의 기술 학습 스터디에서 프론트엔드 개발과 협업 툴 사용을 집중적으 로 학습\nPosition: 프론트엔드 리더\nEvent Role: 글 작성 및 배포 담당\nEvent Category: 문서화 능 력, 지식 공유, 기술 커뮤니케이션\nEvent Data:\n  Background: 스터디 활동 중 배운 내용을 기록하고 외부에 공유하여 개인 포트폴리오와 스터디 브랜드 인지도를 높이려는 목적이 생김.\n  My Action: React 성능 최적화, 코드 스플리팅, SSR 관련 내용을 정리해 글 작성. Dev.to와 Velog에 업로드하고, 썸 네일 디자인도 직접 제작.\nSNS에 홍보하여 개발 커뮤니티와 상호 피드백을 주고받음.\n  Result: 두  편의 글이 Dev.to 주간 인기 글 Top 10에 선정됨. Velog 기준 5,200 조회수 달성. 팀 신규 멤버 모집  시 포트폴리오로 활용됨.\n  Reflection: 글 쓰기를 통해 배운 지식을 더욱 깊이 체화할 수 있음을 느 꼈고, 개발자 커뮤니티와의 연결이 중요한 자산임을 체감함.\n",
+    "Name: EduImpact Lab\nDescription: 교육 혁신과 교수법 연구를 목표로 한 실험적 프로젝트 그룹에서 자료 개발과 연구 발표를 경험\nPosition: 교육콘텐츠 기획자\nEvent Role: 교육자료 기획 및 제작\nEvent Category: 교육 설계, 콘텐츠 제 작, 디지털 역량\nEvent Data:\n  Background: 긴 러닝타임의 교육 콘텐츠에 학습자의 피로도가 높다는 문제로, 모바일 환경에 최적화된 짧고 핵심적인 학습 자료 개발이 필요해짐.\n  My Action: 학습목표 를 모듈 단위로 쪼개고, 스크립트 집필, 영상 촬영 콘셉트 구성, 모션그래픽 삽입을 총괄.\nLMS에 업로드 후 사용자 피드백을 수집하고 개선 사항을 반영함.\n  Result: 15개 마이크로러닝 영상 제작 완료, 평균 러닝타임 3분 20초. 시청자 만족도 설문 평균 4.9/5 기록.\n대학 e-러닝 포털에서 인기 콘텐츠 순위 진입.\n  Reflection: ‘짧음’이 곧 ‘가벼움’이 아니며, 핵심 메시지를 명확히 설계해야 학습 효과가 높다는 점을 배움.\n",
+    "Name: EduImpact Lab\nDescription: 교육 혁신과 교수법 연구를 목표로 한 실험적 프로젝트 그룹에서 자료 개발과 연구 발표를 경험\nPosition: 교육콘텐츠 기획자\nEvent Role: 논문 집필 및 발표자\nEvent Category: 연구 기획, 데이터 분석, 프리젠테이션 스킬\nEvent Data:\n  Background: 온라인 수업 도입 이후 학습 몰입도의 변화를 수치적으로 규명해 달라는 학회 요청이 있었음. 정량적 데이터를 기반으로 발표를 준비해야 함.\n  My Action: 수강생 대상 설문조사 설계, 수집된 데이터를 SPSS로 분석. 몰입도 점수와 학습 만족도의 상관관계 분석 후 결과를 시각화.\n논문 작성과 학 회용 발표자료 제작을 모두 담당.\n  Result: EdTech 학회 우수 발표로 선정됨. 발표 이후 두 개 기관 에서 공동연구 제안이 이어짐.\n  Reflection: 연구결과를 쉽게 전달하기 위한 스토리텔링의 중요성을 다시 한 번 느꼈고, 데이터 분석만큼 발표 기술도 중요함을 깨달음.\n",
+]
+
+now = datetime.now().isoformat()  # Convert to ISO format string
+# test code
+# now = datetime.now().isoformat()  # Convert to ISO format string
+# response = (
+#     supabase.table("activity_embedding")
+#     .insert(
+#         {
+#             "user_id": "ab3312ab-975e-4421-bae4-ca1cc5bbadf4",
+#             "content": text,
+#             "embedding": client.embeddings.create(
+#                 input="hello", model="text-embedding-3-small"
+#             )
+#             .data[0]
+#             .embedding,
+#             "favorite": False,
+#             "created_at": now,  # Use ISO format string
+#             "updated_at": now,  # Use ISO format string
+#         }
+#     )
+#     .execute()
+# )
+
+
+def chunk_text(text, max_tokens=8000):
+    tokens = tokenizer.encode(text)
+    chunks = []
+    i = 0
+    while i < len(tokens):
+        chunk = tokens[i : i + max_tokens]
+        chunks.append(tokenizer.decode(chunk))
+        i += max_tokens
+    return chunks
+
+
+# for chunk in chunk_text(text):
+for chunk in text:
+    embedding_response = client.embeddings.create(
+        input=chunk, model="text-embedding-3-small"
+    )
+    # store each embedding with its chunk
+
+    response = (
+        supabase.table("activity_embedding")
+        .insert(
+            {
+                "user_id": "ab3312ab-975e-4421-bae4-ca1cc5bbadf4",
+                "content": chunk,
+                "embedding": embedding_response.data[0].embedding,
+                "favorite": False,
+                "created_at": now,  # Use ISO format string
+                "updated_at": now,  # Use ISO format string
+            }
+        )
+        .execute()
+    )
