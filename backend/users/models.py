@@ -4,7 +4,7 @@ from django.db import models
 class SupabaseUser(models.Model):
     id = models.UUIDField(primary_key=True)
     email = models.EmailField()
-    created_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     last_sign_in_at = models.DateTimeField(null=True)
     # Add other fields as needed from Supabase schema
