@@ -1,8 +1,32 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { dummy } from "@/data/dummy";
+import axios from "axios";
+import { useModal } from "../context/ModalContext";
 
 const ActivitySection = () => {
-  const activities = dummy.activity_list;
+  //const activities = dummy.activity_list;
+  const [activities, setActivities] = useState([]);
+  const { isOpen } = useModal();
+
+  useEffect(() => {
+    const fetchActivityData = async () => {
+      try {
+        const response = await axios.get("http://localhost:8000/api/post/");
+        const data = response.data;
+
+        if (data.activity_list) {
+          setActivities(data.activity_list);
+        } else {
+          console.warn("activity_list가 응답에 없습니다:", data);
+        }
+      } catch (error) {
+        console.error("ActivitySection API 호출 실패:", error);
+      }
+    };
+    if (isOpen) {
+      fetchActivityData(); // 모달이 열렸을 때만 fetch
+    }
+  }, [isOpen]);
 
   return (
     <>
@@ -10,9 +34,9 @@ const ActivitySection = () => {
         👍 이 활동으로 문항을 작성해보시는 걸 추천해요 :)
       </p>
       <div className="flex gap-[25px]">
-        {activities.map(({ activity, fit, events_list }, idx) => (
+        {activities.map(({ activity, fit, events_list, id }, idx) => (
           <div
-            key={idx}
+            key={id || idx}
             className="bg-white rounded-[15px] shadow-[0px_4px_6px_4px_rgba(0,0,0,0.25)] p-[20px] w-[555px]"
           >
             <div className="flex justify-between items-start mb-[30px]">
@@ -20,12 +44,15 @@ const ActivitySection = () => {
                 {activity}
               </h3>
               <span className="text-[#ffb38a] text-xl font-semibold paperlogy_6">
-                {fit * 100}%
+                {(fit * 100).toFixed(0)}%
               </span>
             </div>
             <div className="space-y-[25px] mb-[42px]">
-              {events_list.map(({ event }, i) => (
-                <div key={i} className="flex justify-between items-center">
+              {events_list.map(({ event, id: eventId }, i) => (
+                <div
+                  key={eventId || i}
+                  className="flex justify-between items-center"
+                >
                   <p className="text-black text-xl font-normal paperlogy_4">
                     {event}
                   </p>
