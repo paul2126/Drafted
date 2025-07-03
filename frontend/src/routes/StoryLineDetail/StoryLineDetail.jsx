@@ -41,7 +41,7 @@ const StoryLineDetail = () => {
             <h2 className="text-black text-[22px] font-semibold paperlogy_6 mb-[10px]">
               질문
             </h2>
-            <QuestionInput></QuestionInput>
+            <QuestionInput applicationId={1} questionId={1}></QuestionInput>
           </div>
 
           {/* ai 응답 받아오는 modal */}
