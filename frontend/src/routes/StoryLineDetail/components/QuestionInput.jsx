@@ -14,7 +14,7 @@ const QuestionInput = ({ className = "", applicationId, questionId }) => {
   const handleSubmit = async () => {
     try {
       const response = await axios.post(
-        "https://api.attat.org:8000/api/ai/analyze/",
+        "https://api.attat.org:8000/api/ai/analyze",
         {
           application_id: applicationId,
           question_id: questionId,
