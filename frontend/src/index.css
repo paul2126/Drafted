@@ -1,11 +1,71 @@
 @import "tailwindcss";
-@plugin "tailwindcss-animate";
+/* @plugin "tailwindcss-animate"; */
 @tailwind utilities;
 
-@custom-variant dark (&:is(.dark *));
+@font-face {
+  font-family: "Paperlogy";
+  src: url("/public/fonts/Paperlogy-4Regular.ttf") format("ttf");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Paperlogy";
+  src: url("/public/fonts/Paperlogy-6SemiBold.ttf") format("ttf");
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "Paperlogy";
+  src: url("/public/fonts/Paperlogy-9Black.ttf") format("ttf");
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "Paperlogy_9";
+  src: url("/src/assets/fonts/Paperlogy-9Black.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Paperlogy_4";
+  src: url("/src/assets/fonts/Paperlogy-4Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Paperlogy_5";
+  src: url("/src/assets/fonts/Paperlogy-5Medium.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Paperlogy_6";
+  src: url("/src/assets/fonts/Paperlogy-6SemiBold.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.paperlogy_9 {
+  font-family: "Paperlogy_9", sans-serif;
+}
+
+.paperlogy_4 {
+  font-family: "Paperlogy_4", sans-serif;
+}
+
+.paperlogy_6 {
+  font-family: "Paperlogy_6", sans-serif;
+}
+
+.paperlogy_5 {
+  font-family: "Paperlogy_5", sans-serif;
+}
 
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Paperlogy", system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -62,37 +122,37 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  font-family: "Paperlogy";
 }
 
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+  font-weight: 900;
 }
 
 button {
   border-radius: 8px;
-  border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
   cursor: pointer;
+  border: black;
   transition: border-color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: black;
 }
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
+/* @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
     background-color: #ffffff;
@@ -103,7 +163,7 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
-}
+} */
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);

@@ -1,10 +1,8 @@
 import React from "react";
 import { applications } from "@/data/applications";
-import { ApplicationRow } from "./components/";
+import { ApplicationRow } from "./components";
 import { Header, CreateButton } from "@/shared/components/";
 import { Search, Filter } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router";
 
 const StoryLine = () => {
   return (
@@ -33,13 +31,13 @@ const StoryLine = () => {
         <div className="w-[75px] flex justify-center">
           {/* Checkbox column */}
         </div>
-        <div className="w-[435px] text-center">
+        <div className="w-[500px] text-center">
           <span className="text-xl font-bold text-black">지원서 명</span>
         </div>
-        <div className="w-[169px] text-center">
+        <div className="w-[180px] text-center">
           <span className="text-xl font-bold text-black">지원 마감일</span>
         </div>
-        <div className="w-[162px] text-center">
+        <div className="w-[250px] text-center">
           <span className="text-xl font-bold text-black">카테고리</span>
         </div>
         <div className="w-[168px] text-center">

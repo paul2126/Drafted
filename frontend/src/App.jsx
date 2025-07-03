@@ -2,8 +2,8 @@ import "./App.css";
 import { useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import StoryLine from "@/routes/StoryLine/StoryLine";
-import AppList from "@/routes/AppList/AppList";
-import MainPage from "./routes/MainPage.jsx/MainPage";
+import MainPage from "@/routes/MainPage/MainPage";
+import StoryLineDetail from "@/routes/StoryLineDetail/StoryLineDetail";
 
 function App() {
   // const [count, setCount] = useState(0)
@@ -13,8 +13,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<MainPage />} />
-        <Route path="/applist" element={<AppList />} />
         <Route path="/storyline" element={<StoryLine />} />
+        <Route path="/storylinedetail" element={<StoryLineDetail />} />
       </Routes>
     </BrowserRouter>
   );
