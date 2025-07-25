@@ -21,6 +21,10 @@ class ActivityEmbedding(models.Model):
 class Activity(models.Model):
     user = models.ForeignKey(Profile, on_delete=models.CASCADE)
     favorite = models.BooleanField(default=False)
+    activity_name = models.TextField()
+    category = models.TextField(null=True, blank=True)
+    position = models.TextField(null=True, blank=True)
+    file_list = models.JSONField(null=True, blank=True)  # List of file URLs
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     start_date = models.DateTimeField(null=True, blank=True)
@@ -31,15 +35,17 @@ class Activity(models.Model):
 
 
 class Event(models.Model):
-    activity_id = models.ForeignKey(Activity, on_delete=models.CASCADE)
+    activity = models.ForeignKey(Activity, on_delete=models.CASCADE)
     start_date = models.DateTimeField(null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
-    role = models.TextField(null=True, blank=True)
-    ability = models.TextField(null=True, blank=True)
-    background = models.TextField(null=True, blank=True)
-    my_action = models.TextField(null=True, blank=True)
     result = models.TextField(null=True, blank=True)
-    reflection = models.TextField(null=True, blank=True)
+    situation = models.TextField(null=True, blank=True)
+    task = models.TextField(null=True, blank=True)
+    action = models.TextField(null=True, blank=True)
+    contribution = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    event_name = models.TextField()
 
     class Meta:
         db_table = "event"

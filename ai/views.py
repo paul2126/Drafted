@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
-from .models import AiAnalysis, AiSuggestion
+from .models import EventSuggestion
 from applications.models import QuestionList
 from activities.models import Activity, Event
 from openai import OpenAI
