@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     "activities",
     "applications",
     "ai",
+    "drf_yasg",
+    "rest_framework",
 ]
 
 MIDDLEWARE = [
@@ -101,6 +103,9 @@ DATABASES = {
         # },
     }
 }
+# Supabase settings
+SUPABASE_URL = env("DB_URL")
+SUPABASE_KEY = env("DB_KEY")
 
 
 # Password validation
