@@ -21,9 +21,11 @@ class Profile(models.Model):
         on_delete=models.CASCADE,
         primary_key=True,
     )
-    university = models.CharField(max_length=255)
-    nickname = models.CharField(max_length=255)
-    avatar_url = models.CharField(max_length=255)
+    name = models.TextField()
+    university = models.TextField()
+    major = models.TextField()
+    graduation_year = models.IntegerField()
+    field_of_interest = models.TextField()
 
     class Meta:
         db_table = "profile"  # name of the table
