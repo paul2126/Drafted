@@ -49,13 +49,17 @@ class ActivityDetailSerializer(serializers.Serializer):
 class ActivityCreateSerializer(serializers.Serializer):
     title = serializers.CharField(source="activity_name", help_text="활동 제목")
     category = serializers.CharField(help_text="활동 카테고리")
-    startDate = serializers.DateTimeField(source="start_date", help_text="활동 시작일")
-    endDate = serializers.DateTimeField(source="end_date", help_text="활동 종료일")
-    role = serializers.CharField(
-        source="position",
+    startDate = serializers.DateTimeField(
+        source="start_date", required=False, help_text="활동 시작일"
     )
-    description = serializers.CharField(help_text="활동 설명")
-    keywords = serializers.CharField(help_text="활동 키워드")
+    endDate = serializers.DateTimeField(
+        source="end_date", required=False, help_text="활동 종료일"
+    )
+    role = serializers.CharField(
+        source="position", required=False, help_text="활동 역할 및 직책"
+    )
+    description = serializers.CharField(required=False, help_text="활동 설명")
+    keywords = serializers.CharField(required=False, help_text="활동 키워드")
     isFavorite = serializers.BooleanField(
         source="favorite", default=False, help_text="즐겨찾기 여부"
     )

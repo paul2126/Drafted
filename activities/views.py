@@ -93,8 +93,14 @@ class ActivityListView(APIView):
         supabase = get_supabase_client(request)
         user_id = get_user_id_from_token(request)
 
-        data = request.data
+        # Validate request data and remap fields to match the database schema
+        serializer = ActivityCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
         data["user_id"] = user_id  # Ensure user_id is set
+        print(data)
 
         result = supabase.table("activity").insert(data).execute()
 
