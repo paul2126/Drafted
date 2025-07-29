@@ -7,24 +7,10 @@ from django.conf import settings
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .serializers import ProfileInfoSerializer
+from utils.supabase_utils import get_supabase_client, get_user_id_from_token
 
 
 class ProfileInfoView(APIView):
-    def get_supabase_client(self, request):
-        # Extract JWT token from request
-        auth_header = get_authorization_header(request).decode("utf-8")
-        token = (
-            auth_header.replace("Bearer ", "")
-            if auth_header.startswith("Bearer ")
-            else None
-        )
-
-        # Create authenticated client
-        supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
-        if token:
-            supabase.auth.set_session(token)
-        return supabase
-
     def filter_fields(self, data):
         # Filter the fields to match the serializer
         return {
@@ -41,7 +27,7 @@ class ProfileInfoView(APIView):
         tags=["Profile"],
     )
     def get(self, request, user_id):
-        supabase = self.get_supabase_client(request)
+        supabase = get_supabase_client(request)
 
         # Query through Supabase (respects RLS)
         result = supabase.table("profile").select("*").eq("user_id", user_id).execute()
@@ -58,7 +44,7 @@ class ProfileInfoView(APIView):
         tags=["Profile"],
     )
     def post(self, request, user_id):
-        supabase = self.get_supabase_client(request)
+        supabase = get_supabase_client(request)
 
         # Extract data from request
         data = request.data
@@ -77,7 +63,7 @@ class ProfileInfoView(APIView):
         tags=["Profile"],
     )
     def delete(self, request, user_id):
-        supabase = self.get_supabase_client(request)
+        supabase = get_supabase_client(request)
 
         # Delete profile in Supabase
         result = supabase.table("profile").delete().eq("user_id", user_id).execute()
