@@ -100,14 +100,16 @@ class ActivityListView(APIView):
 
         data = serializer.validated_data
         data["user_id"] = user_id  # Ensure user_id is set
-        print(data)
 
         result = supabase.table("activity").insert(data).execute()
 
         if not result.data:
-            return Response({"error": "Failed to create activity"}, status=400)
+            return Response(
+                {"error": "Failed to create activity"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        return Response(result.data[0], status=201)
+        return Response(result.data[0], status=status.HTTP_201_CREATED)
 
 
 class ActivityDetailView(APIView):
@@ -131,7 +133,9 @@ class ActivityDetailView(APIView):
             ).execute()
 
             if not result.data:
-                return Response({"error": "Activity not found"}, status=404)
+                return Response(
+                    {"error": "Activity not found"}, status=status.HTTP_404_NOT_FOUND
+                )
             return Response(result.data, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -161,7 +165,8 @@ class ActivityDetailView(APIView):
 
         if not result.data:
             return Response(
-                {"error": "Activity not found or update failed"}, status=404
+                {"error": "Activity not found or update failed"},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         return Response(result.data[0])
@@ -190,7 +195,9 @@ class ActivityDetailView(APIView):
         )
 
         if not result.data:
-            return Response({"error": "Activity not found"}, status=404)
+            return Response(
+                {"error": "Activity not found"}, status=status.HTTP_404_NOT_FOUND
+            )
         return Response(result.data[0])
 
     @swagger_auto_schema(
@@ -212,4 +219,11 @@ class ActivityDetailView(APIView):
             .execute()
         )
 
-        return Response(status=204)
+        return (
+            Response(status=status.HTTP_204_NO_CONTENT)
+            if result.data
+            else Response(
+                {"error": "Activity not found or deletion failed"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        )
