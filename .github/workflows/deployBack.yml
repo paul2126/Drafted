@@ -20,7 +20,7 @@ jobs:
           username: ubuntu                  
           key: ${{ secrets.PRIVATE_KEY }}      
           script: |
-            cd /home/ubuntu/Cody-Now/
+            cd /home/ubuntu/Drafted/
             git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt
