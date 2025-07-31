@@ -33,7 +33,7 @@ jobs:
             python manage.py collectstatic --noinput --settings=config.settings.production
             python manage.py migrate --settings=config.settings.production
             
-            #sudo systemctl restart gunicorn
+            sudo systemctl restart gunicorn
             sudo systemctl restart nginx
 
       - name: Send Slack notification (Success)
