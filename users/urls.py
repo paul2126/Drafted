@@ -1,6 +1,7 @@
 from django.urls import path
-from .views import ProfileInfoView
+from .views import ProfileInfoView, ProfileCreateView
 
 urlpatterns = [
-    path("profile/<uuid:user_id>/", ProfileInfoView.as_view(), name="get_profile_info"),
+    path("", ProfileCreateView.as_view(), name="make-profile"),
+    path("<uuid:user_id>/", ProfileInfoView.as_view(), name="profile-info"),
 ]

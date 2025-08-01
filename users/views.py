@@ -5,27 +5,56 @@ from rest_framework.response import Response
 from django.http import Http404
 from django.conf import settings
 from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
 from .serializers import ProfileInfoSerializer
+from utils.supabase_utils import get_supabase_client, get_user_id_from_token
+from rest_framework import status
+
+
+class ProfileCreateView(APIView):
+    """Create new profile"""
+
+    @swagger_auto_schema(
+        operation_summary="프로필 생성",
+        operation_description="프로필 생성",
+        request_body=ProfileInfoSerializer,
+        responses={201: ProfileInfoSerializer(), 400: "Bad Request"},
+        tags=["Profile"],
+    )
+    def post(self, request):
+        supabase = get_supabase_client(request)
+        user_id = get_user_id_from_token(request)
+
+        serializer = ProfileInfoSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        data["user_id"] = user_id
+
+        result = supabase.table("profile").insert(data).execute()
+
+        if not result.data:
+            return Response(
+                {"error": "Failed to create profile"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            self._filter_fields(result.data[0]), status=status.HTTP_201_CREATED
+        )
+
+    def _filter_fields(self, data):
+        return {
+            "name": data.get("name"),
+            "university": data.get("university"),
+            "major": data.get("major"),
+            "graduation_year": data.get("graduation_year"),
+            "field_of_interest": data.get("field_of_interest"),
+        }
 
 
 class ProfileInfoView(APIView):
-    def get_supabase_client(self, request):
-        # Extract JWT token from request
-        auth_header = get_authorization_header(request).decode("utf-8")
-        token = (
-            auth_header.replace("Bearer ", "")
-            if auth_header.startswith("Bearer ")
-            else None
-        )
-
-        # Create authenticated client
-        supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
-        if token:
-            supabase.auth.set_session(token)
-        return supabase
-
-    def filter_fields(self, data):
+    def _filter_fields(self, data):
         # Filter the fields to match the serializer
         return {
             "name": data.get("name"),
@@ -36,55 +65,70 @@ class ProfileInfoView(APIView):
         }
 
     @swagger_auto_schema(
-        operation_description="Get user profile information",
-        responses={200: ProfileInfoSerializer(many=False)},
+        operation_summary="프로필 정보 조회",
+        operation_description="프로필 정보 조회",
+        responses={200: ProfileInfoSerializer(many=False), 404: "Profile not found"},
         tags=["Profile"],
     )
-    def get(self, request, user_id):
-        supabase = self.get_supabase_client(request)
+    def get(self, request):
+        supabase = get_supabase_client(request)
+        user_id = get_user_id_from_token(request)
 
         # Query through Supabase (respects RLS)
         result = supabase.table("profile").select("*").eq("user_id", user_id).execute()
 
         if not result.data:
-            return Response({"error": "Profile not found"}, status=404)
+            return Response(
+                {"error": "Profile not found"}, status=status.HTTP_404_NOT_FOUND
+            )
 
-        return Response(self.filter_fields(result.data[0]), status=200)
+        return Response(self._filter_fields(result.data[0]), status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        operation_description="Update user profile information",
+        operation_summary="프로필 정보 업데이트",
+        operation_description="프로필 정보 업데이트",
         request_body=ProfileInfoSerializer,
-        responses={200: ProfileInfoSerializer(many=False)},
+        responses={200: ProfileInfoSerializer(many=False), 404: "Profile not found"},
         tags=["Profile"],
     )
-    def post(self, request, user_id):
-        supabase = self.get_supabase_client(request)
+    def put(self, request):
+        supabase = get_supabase_client(request)
+        user_id = get_user_id_from_token(request)
 
-        # Extract data from request
-        data = request.data
-
-        # Update profile in Supabase
-        result = supabase.table("profile").update(data).eq("user_id", user_id).execute()
+        result = (
+            supabase.table("profile")
+            .update(request.data)
+            .eq("user_id", user_id)
+            .execute()
+        )
 
         if not result.data:
-            return Response({"error": "Profile not found or update failed"}, status=404)
+            return Response(
+                {"error": "Update failed"}, status=status.HTTP_404_NOT_FOUND
+            )
 
-        return Response(self.filter_fields(result.data[0]), status=200)
+        return Response(result.data[0])
 
     @swagger_auto_schema(
-        operation_description="Delete user profile",
-        responses={204: "Profile deleted successfully"},
+        operation_summary="프로필 제거",
+        operation_description="프로필 제거",
+        responses={204: "Profile deleted successfully", 404: "Profile not found"},
         tags=["Profile"],
     )
-    def delete(self, request, user_id):
-        supabase = self.get_supabase_client(request)
+    def delete(self, request):
+        supabase = get_supabase_client(request)
+        user_id = get_user_id_from_token(request)
 
         # Delete profile in Supabase
         result = supabase.table("profile").delete().eq("user_id", user_id).execute()
 
         if not result.data:
             return Response(
-                {"error": "Profile not found or deletion failed"}, status=404
+                {"error": "Profile not found or deletion failed"},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        return Response({"message": "Profile deleted successfully"}, status=204)
+        return Response(
+            {"message": "Profile deleted successfully"},
+            status=status.HTTP_204_NO_CONTENT,
+        )
