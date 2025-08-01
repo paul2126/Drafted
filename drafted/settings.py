@@ -20,18 +20,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env()
 
-environ.Env.read_env(env_file=os.path.join(BASE_DIR, ".env"))
+#environ.Env.read_env(env_file=os.path.join(BASE_DIR, ".env"))
+env_file = os.path.join(BASE_DIR, ".env")
+if os.path.exists(env_file):
+    environ.Env.read_env(env_file)
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env("SECRET_KEY")
+SECRET_KEY = env("SECRET_KEY", default=os.environ.get("SECRET_KEY"))
 # SECRET_KEY = "django-insecure-)@@#&!mam^okx#=fldgml-+&+z%=5!kh-oo_t(3abm-ig0yz-h"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool("DEBUG", default=os.environ.get("DEBUG", "False") == "True")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=os.environ.get("ALLOWED_HOSTS", "").split(","))
+
 
 
 # Application definition
