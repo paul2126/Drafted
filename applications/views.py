@@ -4,6 +4,7 @@ from rest_framework import status
 
 from django.shortcuts import get_object_or_404
 
+from users.models import Profile
 from .models import Application, QuestionList
 from .serializers import ApplicationCreateSerializer,  EventRecommendSerializer,QuestionGuideSerializer , ApplicationListSerializer,ApplicationDetailQuestionSerializer
 
@@ -15,11 +16,15 @@ import requests
 #1-1. post: 새 지원서 작성
 class ApplicationCreateView(APIView):
   def post(self, request):
+    #for supabase jwt
+    user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")
+    profile = get_object_or_404(Profile, user_id=user_id)
+
     serializer = ApplicationCreateSerializer(data=request.data)
     if serializer.is_valid():
       # 지원서 인스턴스 생성
       app = Application.objects.create(
-        user=request.user.profile,
+        user=profile,
         category=serializer.validated_data['category'],
         position=serializer.validated_data.get('position'),
         notice=serializer.validated_data.get('notice')
@@ -38,14 +43,22 @@ class ApplicationCreateView(APIView):
 #1-2. get: 지원서 목록 조회
 class ApplicationListView(APIView):
   def get(self, request):
-    applications = Application.objects.filter(user=request.user.profile) #.order_by("-created_at")
+    #for supabase jwt
+    user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")
+    profile = get_object_or_404(Profile, user_id=user_id)
+
+    applications = Application.objects.filter(user=profile) #.order_by("-created_at")
     serializer = ApplicationListSerializer(applications, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 #1-3. get : 특정 지원서 detail 내용 조회
 class ApplicationDetailView(APIView):
     def get(self, request, application_id):
-      app = get_object_or_404(Application, id=application_id, user=request.user.profile)
+      #for supabase jwt
+      user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")
+      profile = get_object_or_404(Profile, user_id=user_id)
+
+      app = get_object_or_404(Application, id=application_id, user=profile)
       questions = QuestionList.objects.filter(application=app).order_by("id")
       serializer = ApplicationDetailQuestionSerializer(questions, many=True)
       return Response(serializer.data, status=status.HTTP_200_OK)
@@ -53,7 +66,11 @@ class ApplicationDetailView(APIView):
 #1-4. delete: 지원서 삭제
 class ApplicationDeleteView(APIView):
     def delete(self, request, application_id):
-        app = get_object_or_404(Application, id=application_id, user=request.user.profile)
+        #for supabase jwt
+        user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")
+        profile = get_object_or_404(Profile, user_id=user_id)
+
+        app = get_object_or_404(Application, id=application_id, user=profile)
         app.delete()
         return Response({"message": "지원서가 성공적으로 삭제되었습니다."}, status=status.HTTP_200_OK)  
 
