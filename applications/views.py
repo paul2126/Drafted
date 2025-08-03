@@ -68,3 +68,42 @@ class QuestionGuidelineView(APIView):
             return Response({"error": f"AI 서버 요청 실패: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
 
 
+#2-2 . get: 문항별 AI 추천 활동 5개
+class QuestionEventRecommendView(APIView):
+  def get(self, request, question_id):
+    question = get_object_or_404(QuestionList, id=question_id)
+    ai_url = getattr(settings, "AI_RECOMMEND_URL", "http://localhost:8000/ai/recommend/")
+    payload = {
+        "question_id": question.id,
+        "question": question.question
+    }
+    try:
+        ai_response = requests.post(ai_url, json=payload, timeout=10)
+
+        if ai_response.status_code != 200:
+            return Response({"error": "AI 서버 오류"}, status=status.HTTP_502_BAD_GATEWAY)
+
+        ai_data = ai_response.json()
+        ### 짜둔 지원서 구조화하기 LLM 프롬프트 쓸 때 => 프론트 요구 형태로 변환
+        eventlist = [
+            {
+                "id": idx + 1,
+                "title": e["event_name"],
+                "activity": e["activity_name"],
+                "comment": e["comment"],
+                "is_recommended": (e.get("contribution", 0) >= 70.0)
+            }
+            for idx, e in enumerate(ai_data.get("suggested_events", [])[:5])
+        ]
+
+        response_data = {
+            "question_id": question.id,
+            "suggestion": ai_data.get("analysis", "AI 분석 결과 없음"),
+            "eventlist": eventlist
+        }
+
+        serializer = EventRecommendSerializer(data=response_data)
+        if serializer.is_valid():
+          return Response(serializer.data, status=status.HTTP_200_OK)
+    except requests.exceptions.RequestException as e:
+      return Response({"error": f"AI 서버 오류: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)

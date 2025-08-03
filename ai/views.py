@@ -200,7 +200,7 @@ def chunk_text(text, max_tokens=8000):
 
 
 
-##############################application views 를 위한 임시###################
+##############################application views 를 위한 임시 목업 결과들..###################
 #for applications 2-1 
 @csrf_exempt
 def generate_question_guideline(request):
@@ -216,7 +216,8 @@ def generate_question_guideline(request):
 
         if not question:
             return JsonResponse({"error": "question is required"}, status=400)
-
+        
+        # Mock response - replace with actual AI call
         response = {
             "question_id": data.get("question_id", 0),
             "content": (
@@ -233,5 +234,60 @@ def generate_question_guideline(request):
 
 #for 2-2 . get: 문항별 AI 추천 활동 5개
 
+@csrf_exempt
+def recommend_events(request):
+    """
+    AI: 문항별 추천 활동 5개 + 문항 분석 결과 반환 (Mock 버전)
+    출력: analysis(문항 분석), suggested_events(추천 이벤트), tip(작성 팁)
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
 
+    try:
+        data = json.loads(request.body)
+        question_id = data.get("question_id", 0)
+        question = data.get("question", "")
+
+        #Mock response - replace with actual AI call
+        ai_result = {
+            "analysis": f"문항 '{question[:15]}...'은 문제 해결력과 실행력을 평가합니다.",
+            "suggested_events": [
+                {
+                    "activity_name": "패스트캠퍼스",
+                    "event_name": "서비스기획(PM) 온라인 교육 수강",
+                    "situation": "PM 관련 교육 수강 경험",
+                    "task": "실제 프로젝트 기반 과제 수행",
+                    "action": "문제 정의 및 개선 아이디어 제안",
+                    "result": "개발 역량과 문제 해결력 강화",
+                    "contribution": 90.0,
+                    "comment": "서비스 개발 관심과 실행력을 보여주는 이벤트입니다."
+                },
+                {
+                    "activity_name": "멋쟁이사자처럼",
+                    "event_name": "해커톤 프로젝트",
+                    "situation": "팀 해커톤에서 웹서비스 개발",
+                    "task": "백엔드 개발 담당",
+                    "action": "API 설계 및 구현",
+                    "result": "최우수상 수상",
+                    "contribution": 85.0,
+                    "comment": "실무 개발 경험과 협업 능력을 강조할 수 있습니다."
+                },
+                {
+                    "activity_name": "대학신문 활동",
+                    "event_name": "사설 프로세스 개선",
+                    "situation": "편집장으로서 프로세스 문제 인식",
+                    "task": "문제 진단 및 개선안 설계",
+                    "action": "새로운 제작 프로세스 도입",
+                    "result": "오류율 50% 감소",
+                    "contribution": 80.0,
+                    "comment": "문제 해결 과정이 잘 드러납니다."
+                }
+            ],
+            "tip": "이런 활동들을 중심으로 문항을 구성하면 문제 해결력과 실행력이 더 명확하게 드러납니다."
+        }
+
+        return JsonResponse(ai_result, status=200)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
 ###############################################################
