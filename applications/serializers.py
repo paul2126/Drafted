@@ -12,9 +12,7 @@ class ApplicationCreateSerializer(serializers.Serializer):
     activity = serializers.CharField(source="activity_name", help_text="지원서 제목")
     category = serializers.CharField(help_text="지원서 카테고리")
     enddate = serializers.DateTimeField(source="end_date", help_text="지원서 마감일")
-    position = serializers.CharField(
-          source="position", help_text="활동 역할 및 직책"
-    )
+    position = serializers.CharField( help_text="활동 역할 및 직책")
     notice = serializers.CharField(required=False, help_text="모집공고 링크 또는 공고 내용")
     questions = QuestionSerializer(many=True, help_text="지원서 문항 목록")
 
@@ -33,7 +31,7 @@ class ApplicationDetailQuestionSerializer(serializers.ModelSerializer):
     questionId = serializers.IntegerField(source="id", read_only=True)
     questionOrder = serializers.SerializerMethodField()
     content = serializers.CharField(source="question", read_only=True)
-    answer = serializers.CharField(source="answer", default="", read_only=True)
+    answer = serializers.CharField(default="", read_only=True)
     limit = serializers.IntegerField(source="max_length", read_only=True)
 
     class Meta:

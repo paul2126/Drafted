@@ -14,9 +14,20 @@ import requests
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
+
+user_id_header = openapi.Parameter(
+    "X-USER-ID", openapi.IN_HEADER, description="Supabase User ID", type=openapi.TYPE_STRING, required=True
+)
 #1. 지원서 작성 및 목록 조회
 #1-1. post: 새 지원서 작성
 class ApplicationCreateView(APIView):
+  @swagger_auto_schema(
+      operation_summary="지원서 생성",
+      operation_description="새로운 지원서를 생성하고 생성된 지원서 ID를 반환합니다.",
+      manual_parameters=[user_id_header],
+      request_body=ApplicationCreateSerializer,
+      responses={201: openapi.Response(description="지원서 ID", examples={"application/json": {"id": 1}})},
+  )
   def post(self, request):
     #for supabase jwt
     user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")
@@ -44,6 +55,12 @@ class ApplicationCreateView(APIView):
 
 #1-2. get: 지원서 목록 조회
 class ApplicationListView(APIView):
+  @swagger_auto_schema(
+      operation_summary="지원서 목록 조회",
+      operation_description="로그인한 사용자의 모든 지원서를 조회합니다.(최신순말고 마감순으로 하면 좋을듯)",
+      manual_parameters=[user_id_header],
+      responses={200: openapi.Response(description="지원서 목록", schema=ApplicationListSerializer(many=True))},
+  )
   def get(self, request):
     #for supabase jwt
     user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")
@@ -55,6 +72,12 @@ class ApplicationListView(APIView):
 
 #1-3. get : 특정 지원서 detail 내용 조회
 class ApplicationDetailView(APIView):
+    @swagger_auto_schema(
+        operation_summary="지원서 상세 조회",
+        operation_description="특정 지원서의 모든 문항과 작성 내용을 조회합니다.",
+        manual_parameters=[user_id_header],
+        responses={200: ApplicationDetailQuestionSerializer(many=True)},
+    )
     def get(self, request, application_id):
       #for supabase jwt
       user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")
@@ -84,6 +107,11 @@ class ApplicationDeleteView(APIView):
 #2. 문항별 활동 가이드라인 + AI 추천 활동 5개
 #2-1. get: 문항별 활동 가이드라인 
 class QuestionGuidelineView(APIView):
+    @swagger_auto_schema(
+        operation_summary="문항별 활동 가이드라인",
+        operation_description="특정 문항에 대한 AI 활동 가이드라인을 반환합니다.",
+        responses={200: QuestionGuideSerializer()},
+    )
     def get(self, request, question_id):
         question = get_object_or_404(QuestionList, id=question_id)
 
@@ -105,6 +133,11 @@ class QuestionGuidelineView(APIView):
 
 #2-2 . get: 문항별 AI 추천 활동 5개
 class QuestionEventRecommendView(APIView):
+  @swagger_auto_schema(
+      operation_summary="문항별 AI 추천 활동",
+      operation_description="특정 문항과 관련된 AI 추천 활동 5개를 반환합니다.",
+      responses={200: EventRecommendSerializer()},
+  )
   def get(self, request, question_id):
     question = get_object_or_404(QuestionList, id=question_id)
     payload = {
@@ -146,6 +179,11 @@ class QuestionEventRecommendView(APIView):
 #3. editor 지원서 작성 및 첨삭
 #3-1. get: 문항별 작성 가이드라인 
 class QuestionEditorGuidelineView(APIView):
+    @swagger_auto_schema(
+        operation_summary="문항별 AI 추천 활동",
+        operation_description="특정 문항과 관련된 AI 추천 활동 5개를 반환합니다.",
+        responses={200: EventRecommendSerializer()},
+    )
     def get(self, request, question_id):
         question = get_object_or_404(QuestionList, id=question_id)
 
