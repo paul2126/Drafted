@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from django.shortcuts import get_object_or_404
-from django.utils.timezone import now
 
 from .models import Application, QuestionList
 from .serializers import ApplicationCreateSerializer,  EventRecommendSerializer,QuestionGuideSerializer , ApplicationListSerializer,ApplicationDetailQuestionSerializer
@@ -50,6 +49,14 @@ class ApplicationDetailView(APIView):
       questions = QuestionList.objects.filter(application=app).order_by("id")
       serializer = ApplicationDetailQuestionSerializer(questions, many=True)
       return Response(serializer.data, status=status.HTTP_200_OK)
+
+#1-4. delete: 지원서 삭제
+class ApplicationDeleteView(APIView):
+    def delete(self, request, application_id):
+        app = get_object_or_404(Application, id=application_id, user=request.user.profile)
+        app.delete()
+        return Response({"message": "지원서가 성공적으로 삭제되었습니다."}, status=status.HTTP_200_OK)  
+
 #2. 문항별 활동 가이드라인 + AI 추천 활동 5개
 #2-1. get: 문항별 활동 가이드라인 
 class QuestionGuidelineView(APIView):
