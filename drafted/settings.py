@@ -157,3 +157,8 @@ REST_FRAMEWORK = {
         "utils.permissions.IsSupabaseAuthenticated",
     ],
 }
+
+
+
+### AI settings for applications app
+AI_GUIDELINE_URL = os.environ.get("AI_GUIDELINE_URL", "http://localhost:8000/ai/question-guideline/")

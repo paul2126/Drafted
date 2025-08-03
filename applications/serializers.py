@@ -25,7 +25,13 @@ class EventSerializer(serializers.Serializer):
     is_recommended = serializers.BooleanField(help_text="추천 여부")
 
 
+#ai
+class QuestionGuideSerializer(serializers.Serializer):
+    question_id = serializers.IntegerField(help_text="문항 번호(FK)")
+    content = serializers.CharField(help_text="문항별 작성 가이드라인 (AI 생성)")
+
 class EventRecommendSerializer(serializers.Serializer):
     question_id = serializers.IntegerField(help_text="문항 번호(FK)")
     suggestion = serializers.CharField(help_text="AI가 제안하는 답변")
     eventlist = EventSerializer(many=True, help_text="관련 활동 목록")
+

@@ -11,6 +11,7 @@ import tiktoken
 from supabase import create_client, Client
 import os
 
+
 tokenizer = tiktoken.get_encoding("cl100k_base")  # For embedding-3 models
 env = environ.Env()
 
@@ -194,3 +195,43 @@ def chunk_text(text, max_tokens=8000):
         chunks.append(tokenizer.decode(chunk))
         i += max_tokens
     return chunks
+
+
+
+
+
+##############################application views 를 위한 임시###################
+#for applications 2-1 
+@csrf_exempt
+def generate_question_guideline(request):
+    """
+    지원서 문항에 대한 '작성 가이드라인'을 AI로 생성 (현재 Mock)
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        question = data.get("question", "")
+
+        if not question:
+            return JsonResponse({"error": "question is required"}, status=400)
+
+        response = {
+            "question_id": data.get("question_id", 0),
+            "content": (
+                f"문항 '{question[:15]}...'은 개인 동기와 경험을 연결하여 "
+                f"지원 동기의 진정성과 실행 의지를 드러내는 것이 효과적입니다. "
+                f"구체적인 프로젝트 경험, 자발적 활동, 실무 체험을 포함하면 좋습니다."
+            )
+        }
+
+        return JsonResponse(response, status=200)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+#for 2-2 . get: 문항별 AI 추천 활동 5개
+
+
+###############################################################
