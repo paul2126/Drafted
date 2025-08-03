@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 
 from .models import Application, QuestionList
-from .serializers import ApplicationCreateSerializer, QuestionSerializer, EventRecommendSerializer,QuestionGuideSerializer
+from .serializers import ApplicationCreateSerializer,  EventRecommendSerializer,QuestionGuideSerializer , ApplicationListSerializer,ApplicationDetailQuestionSerializer
 
 from django.conf import settings
 import requests
@@ -33,17 +33,23 @@ class ApplicationCreateView(APIView):
           max_length=q['max_characters'],
           question_explanation=q.get('question_explanation', '')
         )
-      return Response({"message": "Application created successfully"}, status=status.HTTP_201_CREATED)
+      return Response({"id": app.id}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 #1-2. get: 지원서 목록 조회
 class ApplicationListView(APIView):
   def get(self, request):
     applications = Application.objects.filter(user=request.user.profile) #.order_by("-created_at")
-    serializer = ApplicationCreateSerializer(applications, many=True)
+    serializer = ApplicationListSerializer(applications, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
-  
 
+#1-3. get : 특정 지원서 detail 내용 조회
+class ApplicationDetailView(APIView):
+    def get(self, request, application_id):
+      app = get_object_or_404(Application, id=application_id, user=request.user.profile)
+      questions = QuestionList.objects.filter(application=app).order_by("id")
+      serializer = ApplicationDetailQuestionSerializer(questions, many=True)
+      return Response(serializer.data, status=status.HTTP_200_OK)
 #2. 문항별 활동 가이드라인 + AI 추천 활동 5개
 #2-1. get: 문항별 활동 가이드라인 
 class QuestionGuidelineView(APIView):
