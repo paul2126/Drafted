@@ -11,6 +11,8 @@ from .serializers import ApplicationCreateSerializer,  EventRecommendSerializer,
 from django.conf import settings
 import requests
 
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 #1. 지원서 작성 및 목록 조회
 #1-1. post: 새 지원서 작성
@@ -65,6 +67,11 @@ class ApplicationDetailView(APIView):
 
 #1-4. delete: 지원서 삭제
 class ApplicationDeleteView(APIView):
+    @swagger_auto_schema(
+        operation_summary="지원서 삭제",
+        operation_description="지원서 ID를 Path Parameter로 받아 해당 지원서를 삭제합니다.",
+        responses={200: openapi.Response("삭제 성공", examples={"application/json": {"message": "지원서가 성공적으로 삭제되었습니다."}})},
+    )
     def delete(self, request, application_id):
         #for supabase jwt
         user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")

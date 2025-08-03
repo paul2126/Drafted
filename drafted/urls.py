@@ -38,6 +38,7 @@ urlpatterns = [
     path("api/ai/", include("ai.urls")),
     path("api/users/", include("users.urls")),
     path("api/activities/", include("activities.urls")),
+    path("api/applications/", include("applications.urls")),
     re_path(
         r"^swagger(?P<format>\.json|\.yaml)$",
         schema_view.without_ui(cache_timeout=0),

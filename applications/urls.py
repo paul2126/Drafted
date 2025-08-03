@@ -4,6 +4,7 @@ from .views import (
     ApplicationCreateView,
     ApplicationListView,
     ApplicationDetailView,
+    ApplicationDeleteView,
     QuestionGuidelineView,
     QuestionEventRecommendView,
     QuestionEditorGuidelineView,
@@ -14,6 +15,7 @@ urlpatterns = [
     path("applications/create/", ApplicationCreateView.as_view(), name="application-create"),           # POST: 새 지원서 작성
     path("applications/", ApplicationListView.as_view(), name="application-list"),                     # GET: 지원서 목록 조회
     path("applications/<int:application_id>/", ApplicationDetailView.as_view(), name="application-detail"),  # GET: 특정 지원서 상세 조회
+    path("applications/<int:application_id>/delete/", ApplicationDeleteView.as_view(), name="application-delete"), #DELETE: 지원서 삭제
     #2.문항별 AI 가이드라인 & 추천 활동
     path("questions/<int:question_id>/guideline/", QuestionGuidelineView.as_view(), name="question-guideline"),
     path("questions/<int:question_id>/recommend/", QuestionEventRecommendView.as_view(), name="question-event-recommend"), 

@@ -294,7 +294,7 @@ def recommend_events(request):
 
 #for 3-1. get: 문항별 작성 가이드라인 
 @csrf_exempt
-def editor_guideline(request):
+def generate_editor_guideline(request):
     if request.method != "POST":
         return JsonResponse({"error": "Only POST allowed"}, status=405)
 
