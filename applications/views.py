@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -50,12 +49,11 @@ class ApplicationListView(APIView):
 class QuestionGuidelineView(APIView):
     def get(self, request, question_id):
         question = get_object_or_404(QuestionList, id=question_id)
-        ai_url = getattr(settings, "AI_GUIDELINE_URL", "http://localhost:8000/ai/question-guideline/")
 
         payload = {"question_id": question.id, "question": question.question}
 
         try:
-            ai_response = requests.post(ai_url, json=payload, timeout=10)
+            ai_response = requests.post(settings.AI_GUIDELINE_URL, json=payload, timeout=10)
 
             if ai_response.status_code != 200:
                 return Response({"error": "AI 서버 오류"}, status=status.HTTP_502_BAD_GATEWAY)
@@ -72,13 +70,12 @@ class QuestionGuidelineView(APIView):
 class QuestionEventRecommendView(APIView):
   def get(self, request, question_id):
     question = get_object_or_404(QuestionList, id=question_id)
-    ai_url = getattr(settings, "AI_RECOMMEND_URL", "http://localhost:8000/ai/recommend/")
     payload = {
         "question_id": question.id,
         "question": question.question
     }
     try:
-        ai_response = requests.post(ai_url, json=payload, timeout=10)
+        ai_response = requests.post(settings.AI_RECOMMEND_URL, json=payload, timeout=10)
 
         if ai_response.status_code != 200:
             return Response({"error": "AI 서버 오류"}, status=status.HTTP_502_BAD_GATEWAY)
@@ -107,3 +104,23 @@ class QuestionEventRecommendView(APIView):
           return Response(serializer.data, status=status.HTTP_200_OK)
     except requests.exceptions.RequestException as e:
       return Response({"error": f"AI 서버 오류: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+#3. editor 지원서 작성 및 첨삭
+#3-1. get: 문항별 작성 가이드라인 
+class QuestionEditorGuidelineView(APIView):
+    def get(self, request, question_id):
+        question = get_object_or_404(QuestionList, id=question_id)
+
+        payload = {"question_id": question.id, "question": question.question}
+
+        try:
+            ai_response = requests.post(settings.AI_EDITOR_GUIDELINE_URL, json=payload, timeout=10)
+            if ai_response.status_code != 200:
+                return Response({"error": "AI 서버 오류"}, status=status.HTTP_502_BAD_GATEWAY)
+
+            ai_data = ai_response.json()
+            return Response(ai_data, status=status.HTTP_200_OK)
+
+        except requests.exceptions.RequestException as e:
+            return Response({"error": f"AI 서버 요청 실패: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
