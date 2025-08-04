@@ -9,9 +9,9 @@ class QuestionSerializer(serializers.Serializer):
 
 class ApplicationCreateSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    activity = serializers.CharField(source="activity_name", help_text="지원서 제목")
+    activity = serializers.CharField(required=True, source="activity_name", help_text="지원서 제목")
     category = serializers.CharField(help_text="지원서 카테고리")
-    enddate = serializers.DateTimeField(source="end_date", help_text="지원서 마감일")
+    endDate = serializers.DateTimeField(source="end_date", help_text="지원서 마감일")
     position = serializers.CharField( help_text="활동 역할 및 직책")
     notice = serializers.CharField(required=False, help_text="모집공고 링크 또는 공고 내용")
     questions = QuestionSerializer(many=True, help_text="지원서 문항 목록")
