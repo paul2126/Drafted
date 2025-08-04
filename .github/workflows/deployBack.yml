@@ -29,9 +29,8 @@ jobs:
             sudo mkdir -p staticfiles
             sudo chmod -R 777 staticfiles
 
-
-            python manage.py collectstatic --noinput --settings=config.settings.production
-            python manage.py migrate --settings=config.settings.production
+            python3 manage.py collectstatic --noinput --settings=drafted.settings.production
+            python3 manage.py migrate --settings=drafted.settings.production
             
             sudo systemctl restart gunicorn
             sudo systemctl restart nginx
