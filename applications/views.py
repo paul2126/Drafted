@@ -180,9 +180,9 @@ class QuestionEventRecommendView(APIView):
 #3-1. get: 문항별 작성 가이드라인 
 class QuestionEditorGuidelineView(APIView):
     @swagger_auto_schema(
-        operation_summary="문항별 AI 추천 활동",
-        operation_description="특정 문항과 관련된 AI 추천 활동 5개를 반환합니다.",
-        responses={200: EventRecommendSerializer()},
+        operation_summary="문항별 작성 가이드라인",
+        operation_description="특정 문항에 대한 작성 가이드라인을 반환합니다.",
+        responses={200: openapi.Response("작성 가이드라인", examples={"application/json": {"question_id": 1, "content": "### 작성 팁..."}})},
     )
     def get(self, request, question_id):
         question = get_object_or_404(QuestionList, id=question_id)
