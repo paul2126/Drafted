@@ -31,14 +31,14 @@ class ApplicationCreateView(APIView):
     supabase = get_supabase_client(request)
     user_id = get_user_id_from_token(request)
     profile = get_object_or_404(Profile, user_id=user_id)
-
+    print(request.data)
     serializer = ApplicationCreateSerializer(data=request.data)
     if serializer.is_valid():
       # 지원서 인스턴스 생성
       app = Application.objects.create(
         user=profile,
-        activity_name=serializer.validated_data['activity'],
-        end_date=serializer.validated_data['endDate'],
+        activity_name=serializer.validated_data.get('activity_name'),
+        end_date=serializer.validated_data.get('end_date'),
         category=serializer.validated_data['category'],
         position=serializer.validated_data.get('position'),
         notice=serializer.validated_data.get('notice')
@@ -47,8 +47,8 @@ class ApplicationCreateView(APIView):
       for q in serializer.validated_data['questions']:
         QuestionList.objects.create(
           application=app,
-          question=q['content'],
-          max_length=q['max_characters'],
+          question=q['question'],
+          max_length=q['max_length'],
           question_explanation=q.get('question_explanation', '')
         )
       return Response({"id": app.id}, status=status.HTTP_201_CREATED)
