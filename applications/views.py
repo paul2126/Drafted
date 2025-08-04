@@ -38,6 +38,8 @@ class ApplicationCreateView(APIView):
       # 지원서 인스턴스 생성
       app = Application.objects.create(
         user=profile,
+        activity_name=serializer.validated_data['activity'],
+        end_date=serializer.validated_data['enddate'],
         category=serializer.validated_data['category'],
         position=serializer.validated_data.get('position'),
         notice=serializer.validated_data.get('notice')
@@ -104,6 +106,57 @@ class ApplicationDeleteView(APIView):
         app.delete()
         return Response({"message": "지원서가 성공적으로 삭제되었습니다."}, status=status.HTTP_200_OK)  
 
+#1-5 .put: 지원서 수정 
+class ApplicationUpdateView(APIView):
+    @swagger_auto_schema(
+        operation_summary="지원서 수정",
+        operation_description=(
+            "지원서 ID를 Path Parameter로 받아 해당 지원서를 수정합니다.\n\n"
+            "기존 질문(QuestionList)은 모두 삭제 후 새로 전달된 questions로 대체됩니다."
+        ),
+        request_body=ApplicationCreateSerializer,
+        responses={
+            200: openapi.Response(
+                description="지원서 수정 성공",
+                examples={
+                    "application/json": {
+                        "id": 3,
+                        "message": "지원서가 수정되었습니다."
+                    }
+                },
+            ),
+            400: openapi.Response(description="요청 데이터 오류"),
+            404: openapi.Response(description="지원서 또는 사용자 없음"),
+        },
+    )
+    def put(self, request, application_id):
+
+        user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")
+        profile = get_object_or_404(Profile, user_id=user_id)
+        app = get_object_or_404(Application, id=application_id, user=profile)
+
+        serializer = ApplicationCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            app.category = serializer.validated_data['category']
+            app.end_date = serializer.validated_data['enddate']
+            app.position = serializer.validated_data.get('position', app.position)
+            app.notice = serializer.validated_data.get('notice', app.notice)
+            app.activity_name = serializer.validated_data.get('activity', app.activity_name)
+            app.user = profile 
+            app.save()
+
+            QuestionList.objects.filter(application=app).delete()
+            for q in serializer.validated_data['questions']:
+                QuestionList.objects.create(
+                    application=app,
+                    question=q['content'],
+                    max_length=q['max_characters'],
+                    question_explanation=q.get('question_explanation', '')
+                )
+
+            return Response({"id": app.id, "message": "지원서가 수정되었습니다."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 #2. 문항별 활동 가이드라인 + AI 추천 활동 5개
 #2-1. get: 문항별 활동 가이드라인 
 class QuestionGuidelineView(APIView):
@@ -186,7 +239,6 @@ class QuestionEditorGuidelineView(APIView):
     )
     def get(self, request, question_id):
         question = get_object_or_404(QuestionList, id=question_id)
-
         payload = {"question_id": question.id, "question": question.question}
 
         try:
