@@ -13,24 +13,23 @@ import requests
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from utils.supabase_utils import get_supabase_client, get_user_id_from_token
 
 
-user_id_header = openapi.Parameter(
-    "X-USER-ID", openapi.IN_HEADER, description="Supabase User ID", type=openapi.TYPE_STRING, required=True
-)
+
 #1. 지원서 작성 및 목록 조회
 #1-1. post: 새 지원서 작성
 class ApplicationCreateView(APIView):
   @swagger_auto_schema(
       operation_summary="지원서 생성",
       operation_description="새로운 지원서를 생성하고 생성된 지원서 ID를 반환합니다.",
-      manual_parameters=[user_id_header],
       request_body=ApplicationCreateSerializer,
       responses={201: openapi.Response(description="지원서 ID", examples={"application/json": {"id": 1}})},
   )
   def post(self, request):
     #for supabase jwt
-    user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")
+    supabase = get_supabase_client(request)
+    user_id = get_user_id_from_token(request)
     profile = get_object_or_404(Profile, user_id=user_id)
 
     serializer = ApplicationCreateSerializer(data=request.data)
@@ -60,12 +59,12 @@ class ApplicationListView(APIView):
   @swagger_auto_schema(
       operation_summary="지원서 목록 조회",
       operation_description="로그인한 사용자의 모든 지원서를 조회합니다.(최신순말고 마감순으로 하면 좋을듯)",
-      manual_parameters=[user_id_header],
       responses={200: openapi.Response(description="지원서 목록", schema=ApplicationListSerializer(many=True))},
   )
   def get(self, request):
     #for supabase jwt
-    user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")
+    supabase = get_supabase_client(request)
+    user_id = get_user_id_from_token(request)
     profile = get_object_or_404(Profile, user_id=user_id)
 
     applications = Application.objects.filter(user=profile) #.order_by("-created_at")
@@ -77,12 +76,12 @@ class ApplicationDetailView(APIView):
     @swagger_auto_schema(
         operation_summary="지원서 상세 조회",
         operation_description="특정 지원서의 모든 문항과 작성 내용을 조회합니다.",
-        manual_parameters=[user_id_header],
         responses={200: ApplicationDetailQuestionSerializer(many=True)},
     )
     def get(self, request, application_id):
       #for supabase jwt
-      user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")
+      supabase = get_supabase_client(request)
+      user_id = get_user_id_from_token(request)
       profile = get_object_or_404(Profile, user_id=user_id)
 
       app = get_object_or_404(Application, id=application_id, user=profile)
@@ -99,7 +98,8 @@ class ApplicationDeleteView(APIView):
     )
     def delete(self, request, application_id):
         #for supabase jwt
-        user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")
+        supabase = get_supabase_client(request)
+        user_id = get_user_id_from_token(request)
         profile = get_object_or_404(Profile, user_id=user_id)
 
         app = get_object_or_404(Application, id=application_id, user=profile)
@@ -131,7 +131,8 @@ class ApplicationUpdateView(APIView):
     )
     def put(self, request, application_id):
 
-        user_id = request.headers.get("X-USER-ID") or request.data.get("user_id")
+        supabase = get_supabase_client(request)
+        user_id = get_user_id_from_token(request)
         profile = get_object_or_404(Profile, user_id=user_id)
         app = get_object_or_404(Application, id=application_id, user=profile)
 
