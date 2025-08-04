@@ -39,7 +39,7 @@ class ApplicationCreateView(APIView):
       app = Application.objects.create(
         user=profile,
         activity_name=serializer.validated_data['activity'],
-        end_date=serializer.validated_data['enddate'],
+        end_date=serializer.validated_data['endDate'],
         category=serializer.validated_data['category'],
         position=serializer.validated_data.get('position'),
         notice=serializer.validated_data.get('notice')
@@ -138,7 +138,7 @@ class ApplicationUpdateView(APIView):
         serializer = ApplicationCreateSerializer(data=request.data)
         if serializer.is_valid():
             app.category = serializer.validated_data['category']
-            app.end_date = serializer.validated_data['enddate']
+            app.end_date = serializer.validated_data['endDate']
             app.position = serializer.validated_data.get('position', app.position)
             app.notice = serializer.validated_data.get('notice', app.notice)
             app.activity_name = serializer.validated_data.get('activity', app.activity_name)
