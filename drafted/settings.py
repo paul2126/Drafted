@@ -32,7 +32,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "fallback-secret")
 # SECRET_KEY = "django-insecure-)@@#&!mam^okx#=fldgml-+&+z%=5!kh-oo_t(3abm-ig0yz-h"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "127.0.0.1").split(",")
 
 
@@ -146,7 +146,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "/static/"
-
+STATIC_ROOT = '/home/ubuntu/Drafted/staticfiles/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
