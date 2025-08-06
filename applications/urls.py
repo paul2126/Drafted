@@ -9,6 +9,7 @@ from .views import (
     QuestionEventRecommendView,
     QuestionEditorGuidelineView,
 )
+app_name = "applications"
 
 urlpatterns = [
     # 1.지원서 CRUD
