@@ -18,7 +18,7 @@ class QuestionList(models.Model):
     application = models.ForeignKey(Application, on_delete=models.CASCADE)
     question = models.TextField()
     max_length = models.IntegerField()
-    question_explanation = models.TextField()
+    question_explanation = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
