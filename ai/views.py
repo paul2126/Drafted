@@ -244,9 +244,79 @@ class GenerateEmbeddingsView(APIView):
 class AnalyzeQuestionView(APIView):
     """Convert application question to embedding"""
 
+    @swagger_auto_schema(
+        operation_summary="Analyze Application Question",
+        operation_description="Analyze application question and find matching activities",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "question": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Application question to analyze",
+                )
+            },
+            required=["question"],
+        ),
+        responses={
+            200: "Matching activities found",
+            400: "Bad Request",
+            500: "Internal Server Error",
+        },
+        tags=["AI Question Analysis"],
+    )
     def post(self, request):
-        # Embed question for matching
-        pass
+        try:
+            supabase = get_supabase_client(request)
+            user_id = get_user_id_from_token(request)
+            print(request.data)
+
+            # Get question from application table
+            question = (
+                supabase.table("question_list")
+                .select("application!inner(user_id), question")
+                .eq("application.user_id", user_id)
+                .eq("id", request.data.get("question_id"))
+                .execute()
+            )
+            print(question.data)
+
+            question_paragraph = _convert_to_paragraph(
+                prompt_path="./ai/prompts/question-paragraph.txt",
+                data=question.data[0]["question"],
+            )
+            print(question_paragraph)
+            embedding_response = client.embeddings.create(
+                input=question_paragraph,
+                model="text-embedding-3-small",
+            )
+            # save emebedding to question_list table question_explanation
+            question_list = (
+                supabase.table("question_list")
+                .update({"question_explanation": question_paragraph})
+                .eq("id", request.data.get("question_id"))
+                .execute()
+            )
+            query_embedding = embedding_response.data[0].embedding
+            response = supabase.rpc(
+                "match_documents",
+                {
+                    "query_embedding": query_embedding,  # 1536-dimensional vector
+                    "match_threshold": 0.3,  # Minimum similarity score
+                    "match_count": 3,  # Maximum results to return
+                },
+            ).execute()
+            print(response)
+            print(response.data)
+            return Response(
+                {
+                    "message": "Question analyzed successfully",
+                    "data": question_paragraph,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
 
 
 class EventSuggestionsView(APIView):
@@ -277,137 +347,13 @@ class ChatMessageView(APIView):
         pass
 
 
-# same code to parse_ai_suggestion_to_json.py
-def parse_ai_suggestion_to_json(raw_data):
-    # Parse into desired format
-    ability_set = {}
-    activity_list = []
-
-    for item in raw_data:
-        content_lines = item["content"].split("\n")
-        activity_name = ""
-        description = ""
-        position = ""
-        event_role = ""
-        event_categories = []
-
-        for line in content_lines:
-            if line.startswith("Name:"):
-                activity_name = line.replace("Name:", "").strip()
-            elif line.startswith("Description:"):
-                description = line.replace("Description:", "").strip()
-            elif line.startswith("Position:"):
-                position = line.replace("Position:", "").strip()
-            elif line.startswith("Event Role:"):
-                event_role = line.replace("Event Role:", "").strip()
-            elif line.startswith("Event Category:"):
-                categories = line.replace("Event Category:", "").strip().split(",")
-                event_categories = [c.strip() for c in categories]
-                for cat in event_categories:
-                    ability_set[cat] = (
-                        f"{cat} 관련 경험과 문제 해결에 대한 적용 능력을 보여줍니다."  # placeholder desc
-                    )
-
-        activity_list.append(
-            {
-                "id": item["id"],
-                "activity": activity_name,
-                "fit": round(item["similarity"], 3),
-                "events_list": [{"id": f"{item['id']}-event", "event": event_role}],
-            }
-        )
-
-    # Build final structure
-    parsed_result = {
-        "ability_list": [
-            {"id": idx + 1, "ability": ability, "description": desc}
-            for idx, (ability, desc) in enumerate(ability_set.items())
-        ],
-        "activity_list": activity_list,
-    }
-
-    # Show output
-    parsed_result_json = json.dumps(parsed_result, ensure_ascii=False, indent=2)
-    return parsed_result_json
-
-
-@csrf_exempt
-def analyze_question(request):
-    if request.method != "POST":
-        return JsonResponse({"error": "Only POST method is allowed"}, status=405)
-
-    try:
-        # Parse the incoming JSON data
-        data = json.loads(request.body)
-
-        # Extract required fields
-        application_id = data.get("application_id")
-        question_id = data.get("question_id")
-        question = data.get("question")
-
-        # Validate required fields
-        if not all([application_id, question_id, question]):
-            return JsonResponse(
-                {
-                    "error": "Missing required fields. Please provide application_id, question_id, and question"
-                },
-                status=400,
-            )
-
-        ###################### Embedding #########################################################
-        # dummy data already embedded in supabase with embed_my_log.py and filter_json.py
-        # same code as ask_question.py
-        tokenizer = tiktoken.get_encoding("cl100k_base")  # For embedding-3 models
-        env = environ.Env()
-
-        environ.Env.read_env(env_file=os.path.join(os.path.dirname(__file__), ".env"))
-        # print(os.path.join(os.path.dirname(__file__), ".env"))
-
-        SUPABASE_URL = env("DB_URL")
-        SUPABASE_KEY = env("DB_KEY")
-
-        client = OpenAI(api_key=env("OPENAI_KEY"))
-        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-        embedding_response = client.embeddings.create(
-            input=question,
-            model="text-embedding-3-small",
-        )
-        query_embedding = embedding_response.data[0].embedding
-        response = supabase.rpc(
-            "match_documents",
-            {
-                "query_embedding": query_embedding,
-                "match_threshold": 0.3,
-                "match_count": 3,
-            },
-        ).execute()
-
-        # print(response.data)
-        # Prepare the response
-        # response_data = {"ability_list": ability_list, "activity_list": activity_list}
-        parsed_result_json = json.loads(
-            parsed_result_json
-        )  # json 형태로 불러오기 위해서
-        response_data = {
-            "ability_list": parsed_result_json["ability_list"],
-            "activity_list": parsed_result_json["activity_list"],
-        }
-
-        return JsonResponse(response_data, status=200, safe=False)
-
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON format"}, status=400)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
-
-
-def chunk_text(text, max_tokens=8000):
-    tokens = tokenizer.encode(text)
-    chunks = []
-    i = 0
-    while i < len(tokens):
-        chunk = tokens[i : i + max_tokens]
-        chunks.append(tokenizer.decode(chunk))
-        i += max_tokens
-    return chunks
+# Uncomment if you want to chunk text for embedding
+# def chunk_text(text, max_tokens=8000):
+#     tokens = tokenizer.encode(text)
+#     chunks = []
+#     i = 0
+#     while i < len(tokens):
+#         chunk = tokens[i : i + max_tokens]
+#         chunks.append(tokenizer.decode(chunk))
+#         i += max_tokens
+#     return chunks

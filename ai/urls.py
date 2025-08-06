@@ -56,5 +56,5 @@ urlpatterns = [
     #         ]
     #     ),
     # ),
-    path("analyze/", views.analyze_question, name="analyze-question"),
+    # path("analyze/", views.analyze_question, name="analyze-question"),
 ]
