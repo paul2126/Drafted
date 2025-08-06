@@ -6,19 +6,6 @@ from django.contrib.postgres.fields import ArrayField
 from users.models import Profile
 
 
-class ActivityEmbedding(models.Model):
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
-    metadata = models.JSONField(null=True, blank=True)
-    content = models.TextField(null=True, blank=True)
-    embedding = VectorField(dimensions=1536)
-    favorite = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = "activity_embedding"
-
-
 class Activity(models.Model):
     user = models.ForeignKey(Profile, on_delete=models.CASCADE)
     favorite = models.BooleanField(default=False, help_text="즐겨찾기 여부")
@@ -57,3 +44,15 @@ class Event(models.Model):
 
     class Meta:
         db_table = "event"
+
+
+class ActivityEmbedding(models.Model):
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    metadata = models.JSONField(null=True, blank=True)
+    embedding = VectorField(dimensions=1536)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "activity_embedding"

@@ -98,10 +98,16 @@ class ActivityListView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        data = serializer.validated_data
-        data["user_id"] = user_id  # Ensure user_id is set
+        # Get validated data (this ensures proper datetime handling)
+        validated_data = serializer.validated_data
+        validated_data["user_id"] = user_id
 
-        result = supabase.table("activity").insert(data).execute()
+        # Convert datetime objects to ISO format strings for Supabase
+        for key, value in validated_data.items():
+            if hasattr(value, "isoformat"):  # Check if it's a datetime object
+                validated_data[key] = value.isoformat()
+
+        result = supabase.table("activity").insert(validated_data).execute()
 
         if not result.data:
             return Response(
