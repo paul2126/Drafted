@@ -1,6 +1,6 @@
 from django.db import models
 from users.models import Profile
-
+from activities.models import Activity
 
 class Application(models.Model):
     user = models.ForeignKey(Profile, on_delete=models.CASCADE)
@@ -10,6 +10,9 @@ class Application(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    end_date = models.DateField(null=True, blank=True)
+    activity_name = models.CharField(max_length=255, help_text="지원서 제목 (지원 활동명)")
+        
     class Meta:
         db_table = "application"
 

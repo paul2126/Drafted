@@ -86,3 +86,5 @@ dist/
 # Sketch, PSD 등 디자인 리소스
 *.psd
 *.sketch
+*.key
+*.pem

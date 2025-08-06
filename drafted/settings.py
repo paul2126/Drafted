@@ -20,18 +20,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env()
 
-environ.Env.read_env(env_file=os.path.join(BASE_DIR, ".env"))
+#environ.Env.read_env(env_file=os.path.join(BASE_DIR, ".env"))
+env_file = os.path.join(BASE_DIR, ".env")
+if os.path.exists(env_file):
+    environ.Env.read_env(env_file)
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env("SECRET_KEY")
+SECRET_KEY = os.environ.get("SECRET_KEY", "fallback-secret")
 # SECRET_KEY = "django-insecure-)@@#&!mam^okx#=fldgml-+&+z%=5!kh-oo_t(3abm-ig0yz-h"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "127.0.0.1").split(",")
 
 
 # Application definition
@@ -60,6 +62,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
 ]
 
 ROOT_URLCONF = "drafted.urls"
@@ -105,9 +109,9 @@ DATABASES = {
     }
 }
 # Supabase settings
-SUPABASE_URL = env("DB_URL")
-SUPABASE_KEY = env("DB_KEY")
-
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
+SUPABASE_URL = os.environ.get("DB_URL")
+SUPABASE_KEY = os.environ.get("DB_KEY")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -127,6 +131,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5176",
+    "http://localhost:5177"
+]
+CORS_ALLOW_CREDENTIALS = True
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
@@ -143,8 +155,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static/"
-
+STATIC_URL = "/static/"
+STATIC_ROOT = '/home/ubuntu/Drafted/staticfiles/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -155,3 +167,11 @@ REST_FRAMEWORK = {
         "utils.permissions.IsSupabaseAuthenticated",
     ],
 }
+
+
+
+### AI settings for applications app
+AI_BASE_URL = os.environ.get("AI_BASE_URL", "https://api.drafty.site/ai")
+AI_GUIDELINE_URL = os.environ.get("AI_GUIDELINE_URL", f"{AI_BASE_URL}/question-guideline/")
+AI_RECOMMEND_URL = os.environ.get("AI_RECOMMEND_URL", f"{AI_BASE_URL}/recommend/")
+AI_EDITOR_GUIDELINE_URL =  os.environ.get("AI_EDITOR_GUIDELINE_URL", f"{AI_BASE_URL}/editor-guideline/")

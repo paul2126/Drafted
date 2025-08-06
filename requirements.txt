@@ -7,10 +7,12 @@ colorama==0.4.6
 deprecation==2.1.0
 distro==1.9.0
 Django==5.2.4
+django-cors-headers==4.7.0
 django-environ==0.12.0
 djangorestframework==3.16.0
 drf-yasg==1.21.10
 gotrue==2.12.2
+gunicorn==23.0.0
 h11==0.16.0
 h2==4.2.0
 hpack==4.1.0

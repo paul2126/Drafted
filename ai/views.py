@@ -18,6 +18,7 @@ from drf_yasg import openapi
 from django.conf import settings
 from utils.supabase_utils import get_supabase_client, get_user_id_from_token
 
+
 tokenizer = tiktoken.get_encoding("cl100k_base")  # For embedding-3 models
 environ.Env.read_env(env_file=os.path.join(settings.BASE_DIR, ".env"))
 env = environ.Env()
