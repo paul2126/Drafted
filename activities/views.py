@@ -69,9 +69,9 @@ class ActivityListView(APIView):
             supabase = get_supabase_client(request)
 
             # Get all events
-            events = self._get_all_activities(supabase, request)
+            activities = self._get_all_activities(supabase, request)
             return Response(
-                {"events": events, "total_events": len(events)},
+                {"activities": activities},
                 status=status.HTTP_200_OK,
             )
 
