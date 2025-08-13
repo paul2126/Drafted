@@ -39,6 +39,7 @@ urlpatterns = [
     path("users/", include("users.urls")),
     path("activities/", include("activities.urls")),
     path("applications/", include("applications.urls")),
+    path("chat/", include("chat.urls")),
     re_path(
         r"^swagger(?P<format>\.json|\.yaml)$",
         schema_view.without_ui(cache_timeout=0),
