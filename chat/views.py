@@ -16,8 +16,16 @@ env = environ.Env()
 client = OpenAI(api_key=env("OPENAI_KEY"))
 
 
-def _generate_ai_response(supabase, session_id, user_message, user_id):
+def _generate_ai_response(
+    supabase,
+    session_id,
+    user_message,
+    user_id,
+    question_id,
+    personal_statement="",
+):
     """Generate AI response using OpenAI"""
+    prompt_path = "./ai/prompts/chat.txt"
     try:
         # Get conversation history (last 10 messages for context)
         history_result = (
@@ -29,16 +37,79 @@ def _generate_ai_response(supabase, session_id, user_message, user_id):
             .execute()
         )
 
+        # Get the specific question data
+        question_result = (
+            supabase.table("question_list")
+            .select("id, question")
+            .eq("id", question_id)
+            .execute()
+        )
+
+        current_question = ""
+        if question_result.data:
+            question_data = question_result.data[0]
+            current_question = f"""
+                Current Application Question: {question_data.get('question', 'N/A')}
+                """
+
+        # Get event suggestions for this specific question
+        # Handle the case where there might be no event suggestions
+        event_suggestions_result = None
+        event_suggestions_context = ""
+
+        try:
+            event_suggestions_result = (
+                supabase.table("event_suggestion")
+                .select(
+                    "id, activity, created_at, event(id, event_name, contribution, situation, task, action, result)"
+                )
+                .eq("question_id", question_id)
+                .limit(5)
+                .execute()
+            )
+        except Exception as e:
+            print(f"Error fetching event suggestions: {e}")
+            event_suggestions_result = None
+
+        # Format event suggestions for context
+        if event_suggestions_result and event_suggestions_result.data:
+            event_suggestions_context = "\n\n--- 유저의 관련 활동 및 이벤트 ---\n"
+            for suggestion in event_suggestions_result.data:
+                event = suggestion.get("event", {})
+
+                event_suggestions_context += f"""
+                    Activity: {suggestion.get('activity', 'N/A')}
+                    Event Name: {event.get('event_name', 'N/A')}
+                    Contribution: {event.get('contribution', 'N/A')}
+                    Situation: {event.get('situation', 'N/A')}
+                    Task: {event.get('task', 'N/A')}
+                    Action: {event.get('action', 'N/A')}
+                    Result: {event.get('result', 'N/A')}
+                    ---
+                    """
+        else:
+            event_suggestions_context = (
+                "\n\n--- No relevant activities found for this question yet ---\n"
+            )
+
+        with open(prompt_path, "r", encoding="utf-8") as file:
+            prompt_template = file.read().strip()
+
+        # Format the prompt with actual data
+        formatted_prompt = prompt_template.format(
+            personal_statement=personal_statement,
+            current_question=current_question,
+            relevant_activities=event_suggestions_context,
+        )
+
+        # Build system message with question and activity context
+        system_content = f"{formatted_prompt}"
+
         # Build conversation context
         messages = [
             {
                 "role": "system",
-                "content": (
-                    "You are a helpful AI assistant specialized in helping users write personal statements "
-                    "and application essays. You can help with brainstorming, structuring content, "
-                    "improving writing, and providing feedback. Be supportive, constructive, and specific "
-                    "in your responses."
-                ),
+                "content": system_content,
             }
         ]
 
@@ -61,7 +132,7 @@ def _generate_ai_response(supabase, session_id, user_message, user_id):
 
     except Exception as e:
         print(f"Error generating AI response: {e}")
-        return "I'm sorry, I'm having trouble processing your request right now. Please try again."
+        return "죄송합니다 현재 답변을 드리기 어려운 상황입니다. 조금 후에 다시 시도해주시기 바랍니다."
 
 
 class ChatSessionView(APIView):
@@ -154,7 +225,16 @@ class ChatSessionView(APIView):
                     type=openapi.TYPE_STRING,
                     description="Initial message to start the conversation (optional)",
                 ),
+                "application_id": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID of the application this chat is related to (required)",
+                ),
+                "question_id": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID of the specific question this chat is addressing (required)",
+                ),
             },
+            required=["application_id", "question_id"],
         ),
         responses={
             201: openapi.Response(
@@ -177,6 +257,15 @@ class ChatSessionView(APIView):
             supabase = get_supabase_client(request)
             user_id = get_user_id_from_token(request)
 
+            application_id = request.data.get("application_id")
+            question_id = request.data.get("question_id")
+
+            if not application_id or not question_id:
+                return Response(
+                    {"error": "application_id and question_id are required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             title = request.data.get(
                 "title",
                 f"Chat Session {self._get_session_count(supabase, user_id) + 1}",
@@ -186,6 +275,8 @@ class ChatSessionView(APIView):
             # Create new chat session
             session_data = {
                 "user_id": user_id,
+                "application_id": application_id,
+                "question_id": question_id,
                 "title": title,
             }
 
@@ -202,7 +293,12 @@ class ChatSessionView(APIView):
             if initial_message:
                 self._add_message(supabase, session_id, "user", initial_message)
                 ai_response = _generate_ai_response(
-                    supabase, session_id, initial_message, user_id
+                    supabase,
+                    session_id,
+                    initial_message,
+                    user_id,
+                    question_id,
+                    personal_statement="",
                 )
                 self._add_message(supabase, session_id, "assistant", ai_response)
 
@@ -330,6 +426,14 @@ class ChatMessageView(APIView):
                     type=openapi.TYPE_STRING,
                     description="User message content",
                 ),
+                "personal_statement": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="User's personal statement",
+                ),
+                "question_id": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID of the question this message is related to",
+                ),
             },
             required=["message"],
         ),
@@ -374,10 +478,12 @@ class ChatMessageView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Verify session belongs to user
+            personal_statement = request.data.get("personal_statement", "")
+
+            # Verify session belongs to user and get question_id
             session_result = (
                 supabase.table("chat_session")
-                .select("id, title")
+                .select("id, title, question_id")
                 .eq("id", session_id)
                 .eq("user_id", user_id)
                 .execute()
@@ -389,6 +495,8 @@ class ChatMessageView(APIView):
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
+            question_id = session_result.data[0].get("question_id")
+
             # Save user message
             user_message = self._add_message(
                 supabase, session_id, "user", message_content
@@ -396,7 +504,12 @@ class ChatMessageView(APIView):
 
             # Generate AI response
             ai_response_content = _generate_ai_response(
-                supabase, session_id, message_content, user_id
+                supabase,
+                session_id,
+                message_content,
+                user_id,
+                question_id,
+                personal_statement,
             )
 
             # Save AI response
