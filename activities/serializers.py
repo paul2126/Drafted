@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from .models import Activity, Event
 
 
 class ActivityListSerializer(serializers.Serializer):
@@ -84,3 +85,65 @@ class ActivityUpdateSerializer(serializers.Serializer):
     isFavorite = serializers.BooleanField(
         source="favorite", default=False, required=False, help_text="즐겨찾기 여부"
     )
+
+
+class EventSerializer(serializers.ModelSerializer):
+    activity = serializers.PrimaryKeyRelatedField(read_only=True)
+    title = serializers.CharField(source="event_name", help_text="이벤트 제목")
+    startDate = serializers.DateField(source="start_date", help_text="시작일")
+    endDate = serializers.DateField(source="end_date", help_text="종료일")
+    attachedFiles = serializers.SerializerMethodField()
+    createdAt = serializers.DateTimeField(source="created_at", read_only=True)
+    updatedAt = serializers.DateTimeField(source="updated_at", read_only=True)
+
+    class Meta:
+        model = Event
+        ref_name = "ActivityEvent"
+        fields = [
+            "id",
+            "activity",
+            "title",
+            "situation",
+            "task",
+            "action",
+            "result",
+            "startDate",
+            "endDate",
+            "attachedFiles",
+            "createdAt",
+            "updatedAt",
+        ]
+
+    def get_attachedFiles(self, obj):
+        # TODO: Implement file attachment functionality
+        return []
+
+    def create(self, validated_data):
+        activity_id = self.context.get("activity_id")
+        activity = Activity.objects.get(id=activity_id)
+        validated_data["activity"] = activity
+        return super().create(validated_data)
+
+
+class EventCreateUpdateSerializer(serializers.ModelSerializer):
+    title = serializers.CharField(source="event_name", help_text="이벤트 제목")
+    startDate = serializers.DateField(source="start_date", help_text="시작일")
+    endDate = serializers.DateField(source="end_date", help_text="종료일")
+
+    class Meta:
+        model = Event
+        fields = [
+            "title",
+            "situation",
+            "task",
+            "action",
+            "result",
+            "startDate",
+            "endDate",
+        ]
+
+    def create(self, validated_data):
+        activity_id = self.context.get("activity_id")
+        activity = Activity.objects.get(id=activity_id)
+        validated_data["activity"] = activity
+        return super().create(validated_data)
