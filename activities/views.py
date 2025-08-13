@@ -12,6 +12,8 @@ from .serializers import (
     ActivityCreateSerializer,
     ActivityDetailSerializer,
     ActivityUpdateSerializer,
+    EventSerializer,
+    EventCreateUpdateSerializer,
 )
 
 
@@ -131,7 +133,9 @@ class ActivityDetailView(APIView):
         try:
             supabase = get_supabase_client(request)
             user_id = get_user_id_from_token(request)
-
+            print(
+                f"Fetching details for activity_id: {activity_id}, user_id: {user_id}"
+            )
             # Call stored procedure - automatically updates last_visit
             result = supabase.rpc(
                 "get_activity_detail",
@@ -233,3 +237,320 @@ class ActivityDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         )
+
+
+class EventListView(APIView):
+    @swagger_auto_schema(
+        operation_summary="특정 활동에 등록된 이벤트 전체 조회",
+        operation_description="특정 활동에 등록된 모든 이벤트를 조회합니다.",
+        responses={200: EventSerializer(many=True), 404: "Activity not found"},
+        tags=["Event"],
+    )
+    def get(self, request, activity_id):
+        try:
+            supabase = get_supabase_client(request)
+            user_id = get_user_id_from_token(request)
+
+            # Check if activity exists and belongs to user
+            activity_result = (
+                supabase.table("activity")
+                .select("id")
+                .eq("id", activity_id)
+                .eq("user_id", user_id)
+                .execute()
+            )
+
+            if not activity_result.data:
+                return Response(
+                    {"error": "Activity not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Get all events for this activity
+            events_result = (
+                supabase.table("event")
+                .select("*")
+                .eq("activity_id", activity_id)
+                .order("created_at", desc=True)
+                .execute()
+            )
+
+            # Format events data to match specification
+            events_data = []
+            for event in events_result.data:
+                event_data = {
+                    "id": str(event.get("id")),
+                    "activity": str(activity_id),
+                    "title": event.get("event_name"),
+                    "situation": event.get("situation"),
+                    "task": event.get("task"),
+                    "action": event.get("action"),
+                    "result": event.get("result"),
+                    "startDate": event.get("start_date"),
+                    "endDate": event.get("end_date"),
+                    "attachedFiles": [],  # TODO: Implement file attachment functionality
+                    "createdAt": event.get("created_at"),
+                    "updatedAt": event.get("updated_at"),
+                }
+                events_data.append(event_data)
+
+            return Response(events_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"error": "Failed to fetch events", "detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @swagger_auto_schema(
+        operation_summary="특정 활동에 새로운 이벤트 추가",
+        operation_description="특정 활동에 새로운 이벤트를 추가합니다.",
+        request_body=EventCreateUpdateSerializer,
+        responses={
+            201: openapi.Response(
+                "Created",
+                openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={"id": openapi.Schema(type=openapi.TYPE_STRING)},
+                ),
+            ),
+            400: "Bad Request",
+            404: "Activity not found",
+        },
+        tags=["Event"],
+    )
+    def post(self, request, activity_id):
+        try:
+            supabase = get_supabase_client(request)
+            user_id = get_user_id_from_token(request)
+
+            # Check if activity exists and belongs to user
+            activity_result = (
+                supabase.table("activity")
+                .select("id")
+                .eq("id", activity_id)
+                .eq("user_id", user_id)
+                .execute()
+            )
+
+            if not activity_result.data:
+                return Response(
+                    {"error": "Activity not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Validate request data
+            serializer = EventCreateUpdateSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            # Prepare data for Supabase insertion
+            validated_data = serializer.validated_data
+            event_data = {
+                "activity_id": activity_id,
+                "event_name": validated_data.get("event_name"),
+                "situation": validated_data.get("situation"),
+                "task": validated_data.get("task"),
+                "action": validated_data.get("action"),
+                "result": validated_data.get("result"),
+                "start_date": (
+                    validated_data.get("start_date").isoformat()
+                    if validated_data.get("start_date")
+                    else None
+                ),
+                "end_date": (
+                    validated_data.get("end_date").isoformat()
+                    if validated_data.get("end_date")
+                    else None
+                ),
+            }
+
+            # Insert event
+            result = supabase.table("event").insert(event_data).execute()
+
+            if not result.data:
+                return Response(
+                    {"error": "Failed to create event"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            return Response(
+                {"id": str(result.data[0]["id"])}, status=status.HTTP_201_CREATED
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": "Failed to create event", "detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class EventDetailView(APIView):
+    @swagger_auto_schema(
+        operation_summary="기존 이벤트 정보 수정",
+        operation_description="기존 이벤트(STAR+@)를 수정합니다.",
+        request_body=EventCreateUpdateSerializer,
+        responses={
+            200: openapi.Response(
+                "Updated",
+                openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "id": openapi.Schema(type=openapi.TYPE_STRING),
+                        "updatedAt": openapi.Schema(
+                            type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME
+                        ),
+                    },
+                ),
+            ),
+            400: "Bad Request",
+            404: "Event not found",
+        },
+        tags=["Event"],
+    )
+    def patch(self, request, activity_id, event_id):
+        try:
+            supabase = get_supabase_client(request)
+            user_id = get_user_id_from_token(request)
+
+            # Check if activity exists and belongs to user
+            activity_result = (
+                supabase.table("activity")
+                .select("id")
+                .eq("id", activity_id)
+                .eq("user_id", user_id)
+                .execute()
+            )
+
+            if not activity_result.data:
+                return Response(
+                    {"error": "Activity not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Check if event exists and belongs to the activity
+            event_result = (
+                supabase.table("event")
+                .select("id")
+                .eq("id", event_id)
+                .eq("activity_id", activity_id)
+                .execute()
+            )
+
+            if not event_result.data:
+                return Response(
+                    {"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Validate request data
+            serializer = EventCreateUpdateSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            # Prepare update data for Supabase
+            validated_data = serializer.validated_data
+            update_data = {}
+
+            if "event_name" in validated_data:
+                update_data["event_name"] = validated_data["event_name"]
+            if "situation" in validated_data:
+                update_data["situation"] = validated_data["situation"]
+            if "task" in validated_data:
+                update_data["task"] = validated_data["task"]
+            if "action" in validated_data:
+                update_data["action"] = validated_data["action"]
+            if "result" in validated_data:
+                update_data["result"] = validated_data["result"]
+            if "start_date" in validated_data and validated_data["start_date"]:
+                update_data["start_date"] = validated_data["start_date"].isoformat()
+            if "end_date" in validated_data and validated_data["end_date"]:
+                update_data["end_date"] = validated_data["end_date"].isoformat()
+
+            # Update event
+            result = (
+                supabase.table("event")
+                .update(update_data)
+                .eq("id", event_id)
+                .eq("activity_id", activity_id)
+                .execute()
+            )
+
+            if not result.data:
+                return Response(
+                    {"error": "Failed to update event"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            return Response(
+                {
+                    "id": str(result.data[0]["id"]),
+                    "updatedAt": result.data[0]["updated_at"],
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": "Failed to update event", "detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @swagger_auto_schema(
+        operation_summary="이벤트 삭제",
+        operation_description="특정 이벤트를 삭제합니다.",
+        responses={204: "No Content", 404: "Event not found"},
+        tags=["Event"],
+    )
+    def delete(self, request, activity_id, event_id):
+        try:
+            supabase = get_supabase_client(request)
+            user_id = get_user_id_from_token(request)
+
+            # Check if activity exists and belongs to user
+            activity_result = (
+                supabase.table("activity")
+                .select("id")
+                .eq("id", activity_id)
+                .eq("user_id", user_id)
+                .execute()
+            )
+
+            if not activity_result.data:
+                return Response(
+                    {"error": "Activity not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Check if event exists and belongs to the activity
+            event_result = (
+                supabase.table("event")
+                .select("id")
+                .eq("id", event_id)
+                .eq("activity_id", activity_id)
+                .execute()
+            )
+
+            if not event_result.data:
+                return Response(
+                    {"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Delete event
+            result = (
+                supabase.table("event")
+                .delete()
+                .eq("id", event_id)
+                .eq("activity_id", activity_id)
+                .execute()
+            )
+
+            return (
+                Response(status=status.HTTP_204_NO_CONTENT)
+                if result.data
+                else Response(
+                    {"error": "Event not found or deletion failed"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": "Failed to delete event", "detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
