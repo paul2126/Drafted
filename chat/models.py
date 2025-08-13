@@ -1,9 +1,16 @@
 from users.models import Profile
+from applications.models import Application, QuestionList
 from django.db import models
 
 
 class ChatSession(models.Model):
     user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    application = models.ForeignKey(
+        Application, on_delete=models.CASCADE, null=True, blank=True
+    )
+    question = models.ForeignKey(
+        QuestionList, on_delete=models.CASCADE, null=True, blank=True
+    )
     title = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
