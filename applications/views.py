@@ -166,18 +166,22 @@ class QuestionGuidelineView(APIView):
         operation_description="특정 문항에 대한 AI 활동 가이드라인을 반환합니다.",
         responses={200: QuestionGuideSerializer()},
     )
-    def get(self, request, question_id):
+    
+    def get(self, request, question_id:int):
         question = get_object_or_404(QuestionList, id=question_id)
-
+        ai_url = settings.AI_GUIDELINE_URL.format(question_id=question.id)
         payload = {"question_id": question.id, "question": question.question}
 
         try:
-            ai_response = requests.post(settings.AI_GUIDELINE_URL, json=payload, timeout=10)
+            ai_response = requests.get(ai_url, json=payload, timeout=10)
 
             if ai_response.status_code != 200:
                 return Response({"error": "AI 서버 오류"}, status=status.HTTP_502_BAD_GATEWAY)
 
             ai_data = ai_response.json()
+            if not isinstance(ai_data, dict) or "question_id" not in ai_data or "content" not in ai_data:
+                return Response({"error": "AI 응답 스키마 오류"}, status=status.HTTP_502_BAD_GATEWAY)
+
             serializer = QuestionGuideSerializer(ai_data)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
