@@ -363,150 +363,140 @@ class ChatMessageView(APIView):
 ##############################application views 를 위한 임시 목업 결과들..###################
 #for applications 2-1 
 
-class QuestionGuidelineAIView(APIView):
-    
-    def generate_question_guideline(self, request,question_id: int):
-        """
-        지원서 문항 가이드라인 생성
-        요청(JSON):     GET /ai/application/<question_id>/guideline/?question=문항내용
-        응답(JSON): { "question_id": number, "content": string }
-        - 프롬프트는 `_convert_to_paragraph(prompt_path, data=...)` 한 번으로 구성
-        - 모델 응답은 Strict JSON 스키마로 강제
-        """
-        question = (request.GET.get("question") or "").strip()
-        if not question:
-            return JsonResponse({"error": "question query param is required"}, status=400)
 
-        guideline_prompt = _convert_to_paragraph(
-            prompt_path="./ai/prompts/application-question-guideline.txt",
-            data=json.dumps({"question_id": question_id, "question": question.strip()}, ensure_ascii=False),
-        )
+def generate_question_guideline( question,question_id: int) -> dict:
+    """
+    지원서 문항 가이드라인 생성
+    요청(JSON):     GET /ai/application/<question_id>/guideline/?question=문항내용
+    응답(JSON): { "question_id": number, "content": string }
+    - 프롬프트는 `_convert_to_paragraph(prompt_path, data=...)` 한 번으로 구성
+    - 모델 응답은 Strict JSON 스키마로 강제
+    """
+    if not question:
+        return JsonResponse({"error": "question query param is required"}, status=400)
+
+    guideline_prompt = _convert_to_paragraph(
+        prompt_path="./ai/prompts/application-question-guideline.txt",
+        data=json.dumps({"question_id": question_id, "question": question.strip()}, ensure_ascii=False),
+    )
+    try:
+        resp = client.responses.create(
+            model="gpt-4o-mini",
+
+            temperature=0.4,
+            max_output_tokens=512,
+            input=[{"role": "user", "content": guideline_prompt}], 
+        )    
+        output_text = getattr(resp, "output_text", None)
+        print("resp:", resp)
         try:
-            resp = client.responses.create(
-                model="gpt-4o-mini",
-                response_format={
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": "GuidelineSchema",
-                        "strict": True,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": False,
-                            "properties": {
-                                "question_id": {"type": "number"},
-                                "content": {"type": "string", "maxLength": 600}
-                            },
-                            "required": ["question_id", "content"]
-                        }
-                    }
-                },
-                temperature=0.4,
-                max_output_tokens=512,
-                input=[{"role": "user", "content": guideline_prompt}], 
-            )    
-            output_text = getattr(resp, "output_text", None)
             data = json.loads(output_text)
-            return JsonResponse(
-                {
-                    "question_id": int(data.get("question_id", question_id)),
-                    "content": (data.get("content") or "").strip(),
-                },
-                status=200,
-            )
+        except json.JSONDecodeError:
+            # JSON이 아니면 fallback
+            data = {
+                "question_id": question_id,
+                "content": output_text.strip()
+            }
+        return JsonResponse(
+            {
+                "question_id": int(data.get("question_id", question_id)),
+                "content": (data.get("content") or "").strip(),
+            },
+            status=200,
+        )
 
-        except Exception as e:
-            return JsonResponse(
-                {"error": "AI generation failed", "detail": str(e)},
-                status=502,
-            )
+    except Exception as e:
+        return JsonResponse(
+            {"error": "AI generation failed", "detail": str(e)},
+            status=502,
+        )
 #for 2-2 . get: 문항별 AI 추천 활동 5개
 
 
-class QuestionEventRecommendAIView(APIView):
-    def recommend_events(request):
-        """
-        AI: 문항별 추천 활동 5개 + 문항 분석 결과 반환 (Mock 버전)
-        출력: analysis(문항 분석), suggested_events(추천 이벤트), tip(작성 팁)
-        """
-        if request.method != "POST":
-            return JsonResponse({"error": "Only POST allowed"}, status=405)
 
-        try:
-            data = json.loads(request.body)
-            question_id = data.get("question_id", 0)
-            question = data.get("question", "")
+def recommend_events(request):
+    """
+    AI: 문항별 추천 활동 5개 + 문항 분석 결과 반환 (Mock 버전)
+    출력: analysis(문항 분석), suggested_events(추천 이벤트), tip(작성 팁)
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
 
-            #Mock response - replace with actual AI call
-            ai_result = {
-                "analysis": f"문항 '{question[:15]}...'은 문제 해결력과 실행력을 평가합니다.",
-                "suggested_events": [
-                    {
-                        "activity_name": "패스트캠퍼스",
-                        "event_name": "서비스기획(PM) 온라인 교육 수강",
-                        "situation": "PM 관련 교육 수강 경험",
-                        "task": "실제 프로젝트 기반 과제 수행",
-                        "action": "문제 정의 및 개선 아이디어 제안",
-                        "result": "개발 역량과 문제 해결력 강화",
-                        "contribution": 90.0,
-                        "comment": "서비스 개발 관심과 실행력을 보여주는 이벤트입니다."
-                    },
-                    {
-                        "activity_name": "멋쟁이사자처럼",
-                        "event_name": "해커톤 프로젝트",
-                        "situation": "팀 해커톤에서 웹서비스 개발",
-                        "task": "백엔드 개발 담당",
-                        "action": "API 설계 및 구현",
-                        "result": "최우수상 수상",
-                        "contribution": 85.0,
-                        "comment": "실무 개발 경험과 협업 능력을 강조할 수 있습니다."
-                    },
-                    {
-                        "activity_name": "대학신문 활동",
-                        "event_name": "사설 프로세스 개선",
-                        "situation": "편집장으로서 프로세스 문제 인식",
-                        "task": "문제 진단 및 개선안 설계",
-                        "action": "새로운 제작 프로세스 도입",
-                        "result": "오류율 50% 감소",
-                        "contribution": 80.0,
-                        "comment": "문제 해결 과정이 잘 드러납니다."
-                    }
-                ],
-                "tip": "이런 활동들을 중심으로 문항을 구성하면 문제 해결력과 실행력이 더 명확하게 드러납니다."
-            }
+    try:
+        data = json.loads(request.body)
+        question_id = data.get("question_id", 0)
+        question = data.get("question", "")
 
-            return JsonResponse(ai_result, status=200)
+        #Mock response - replace with actual AI call
+        ai_result = {
+            "analysis": f"문항 '{question[:15]}...'은 문제 해결력과 실행력을 평가합니다.",
+            "suggested_events": [
+                {
+                    "activity_name": "패스트캠퍼스",
+                    "event_name": "서비스기획(PM) 온라인 교육 수강",
+                    "situation": "PM 관련 교육 수강 경험",
+                    "task": "실제 프로젝트 기반 과제 수행",
+                    "action": "문제 정의 및 개선 아이디어 제안",
+                    "result": "개발 역량과 문제 해결력 강화",
+                    "contribution": 90.0,
+                    "comment": "서비스 개발 관심과 실행력을 보여주는 이벤트입니다."
+                },
+                {
+                    "activity_name": "멋쟁이사자처럼",
+                    "event_name": "해커톤 프로젝트",
+                    "situation": "팀 해커톤에서 웹서비스 개발",
+                    "task": "백엔드 개발 담당",
+                    "action": "API 설계 및 구현",
+                    "result": "최우수상 수상",
+                    "contribution": 85.0,
+                    "comment": "실무 개발 경험과 협업 능력을 강조할 수 있습니다."
+                },
+                {
+                    "activity_name": "대학신문 활동",
+                    "event_name": "사설 프로세스 개선",
+                    "situation": "편집장으로서 프로세스 문제 인식",
+                    "task": "문제 진단 및 개선안 설계",
+                    "action": "새로운 제작 프로세스 도입",
+                    "result": "오류율 50% 감소",
+                    "contribution": 80.0,
+                    "comment": "문제 해결 과정이 잘 드러납니다."
+                }
+            ],
+            "tip": "이런 활동들을 중심으로 문항을 구성하면 문제 해결력과 실행력이 더 명확하게 드러납니다."
+        }
 
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
-    
+        return JsonResponse(ai_result, status=200)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
 
 #for 3-1. get: 문항별 작성 가이드라인 
 
-class QuestionEditorGuidelineAIView(APIView):
-    def generate_editor_guideline(request):
-        if request.method != "POST":
-            return JsonResponse({"error": "Only POST allowed"}, status=405)
+def generate_editor_guideline(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
 
-        try:
-            data = json.loads(request.body)
-            question_id = data.get("question_id", 0)
-            #Mock response - replace with actual AI call
-            dummy_response = {
-                "question_id": question_id,
-                "content": (
-                    "### 1. 관점 설정\n"
-                    "단순히 활동이 좋았다는 것이 아니라, 문제의식과 동기를 설명하세요.\n\n"
-                    "### 2. 경험 연결\n"
-                    "활동과 과거 경험을 구체적으로 연결하여 작성하세요.\n\n"
-                    "### 3. 해당 활동의 의미\n"
-                    "활동에서의 역할과 성과를 강조하세요.\n\n"
-                    "### 4. 구체적인 목표와 열정 강조\n"
-                    "앞으로의 목표와 실행 의지를 드러내세요."
-                )
-            }
+    try:
+        data = json.loads(request.body)
+        question_id = data.get("question_id", 0)
+        #Mock response - replace with actual AI call
+        dummy_response = {
+            "question_id": question_id,
+            "content": (
+                "### 1. 관점 설정\n"
+                "단순히 활동이 좋았다는 것이 아니라, 문제의식과 동기를 설명하세요.\n\n"
+                "### 2. 경험 연결\n"
+                "활동과 과거 경험을 구체적으로 연결하여 작성하세요.\n\n"
+                "### 3. 해당 활동의 의미\n"
+                "활동에서의 역할과 성과를 강조하세요.\n\n"
+                "### 4. 구체적인 목표와 열정 강조\n"
+                "앞으로의 목표와 실행 의지를 드러내세요."
+            )
+        }
 
-            return JsonResponse(dummy_response, status=200)
+        return JsonResponse(dummy_response, status=200)
 
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
 ###############################################################

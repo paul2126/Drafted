@@ -171,7 +171,8 @@ REST_FRAMEWORK = {
 
 
 ### AI settings for applications app
-AI_BASE_URL = os.environ.get("AI_BASE_URL", "https://api.drafty.site/ai")
-AI_GUIDELINE_URL = os.environ.get("AI_GUIDELINE_URL", f"{AI_BASE_URL}/question-guideline/")
-AI_RECOMMEND_URL = os.environ.get("AI_RECOMMEND_URL", f"{AI_BASE_URL}/recommend/")
-AI_EDITOR_GUIDELINE_URL =  os.environ.get("AI_EDITOR_GUIDELINE_URL", f"{AI_BASE_URL}/editor-guideline/")
+#AI_BASE_URL = "https://api.drafty.site/ai"
+AI_BASE_URL="http://127.0.0.1:8000/ai"
+AI_GUIDELINE_URL = f"{AI_BASE_URL}/{{question_id}}/guideline/"
+AI_RECOMMEND_URL = f"{AI_BASE_URL}/{{question_id}}/recommend/"
+AI_EDITOR_GUIDELINE_URL =  f"{AI_BASE_URL}/{{question_id}}/editor-guideline/"

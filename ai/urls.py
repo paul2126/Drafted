@@ -6,9 +6,7 @@ from .views import (
     EventSuggestionsView,
     ChatSessionView,
     ChatMessageView,
-    QuestionGuidelineAIView,
-    QuestionEventRecommendAIView,
-    QuestionEditorGuidelineAIView,
+
 )
 from django.urls import include
 
@@ -61,23 +59,5 @@ urlpatterns = [
     # ),
     # path("analyze/", views.analyze_question, name="analyze-question"),
     # application ai
-    path(
-        "application/<int:question_id>/guideline/",
-        QuestionGuidelineAIView.as_view(),
-        name="question-guideline",
-    ),
 
-    # 문항별 AI 추천 활동
-    path(
-        "application/<int:question_id>/recommend/",
-        QuestionEventRecommendAIView.as_view(),
-        name="question-event-recommend",
-    ),
-
-    # 문항별 에디터용 가이드라인
-    path(
-        "application/<int:question_id>/editor-guideline/",
-        QuestionEditorGuidelineAIView.as_view(),
-        name="question-editor-guideline",
-    ),
 ]
