@@ -411,64 +411,112 @@ def generate_question_guideline( question,question_id: int) -> dict:
             status=502,
         )
 #for 2-2 . get: 문항별 AI 추천 활동 5개
+class RecommendEventsView(APIView):
+    """문항 임베딩 기반 활동/이벤트 추천"""
+    @swagger_auto_schema(
+        operation_summary="Recommend Events for Question",
+        operation_description="Find top 5 matching activities/events for a given application question",
+        responses={200: "Recommended events returned"},
+        tags=["AI Question Analysis"],
+    )
+    def get(self, request, question_id: int):
+        try:
+            print("🔍 [DEBUG] Start RecommendEventsView.get")
+            supabase = get_supabase_client(request)
+            user_id = get_user_id_from_token(request)
 
+            print(f"🔍 [DEBUG] user_id={user_id}, question_id={question_id}")
+            # 질문 가져오기
+            question = (
+                supabase.table("question_list")
+                .select("application!inner(user_id), question")
+                .eq("application.user_id", user_id)
+                .eq("id", question_id) 
+                .execute()
+            )
+            print("🔍 [DEBUG] question raw response:", question)
+            print("🔍 [DEBUG] question data:", getattr(question, "data", None))
+            print("🔍 [DEBUG] question query result:", question.data)
+            if not question.data:
+                return Response({"error": "Question not found"}, status=404)
 
-
-def recommend_events(request):
-    """
-    AI: 문항별 추천 활동 5개 + 문항 분석 결과 반환 (Mock 버전)
-    출력: analysis(문항 분석), suggested_events(추천 이벤트), tip(작성 팁)
-    """
-    if request.method != "POST":
-        return JsonResponse({"error": "Only POST allowed"}, status=405)
-
-    try:
-        data = json.loads(request.body)
-        question_id = data.get("question_id", 0)
-        question = data.get("question", "")
-
-        #Mock response - replace with actual AI call
-        ai_result = {
-            "analysis": f"문항 '{question[:15]}...'은 문제 해결력과 실행력을 평가합니다.",
-            "suggested_events": [
+            question_text = question.data[0]["question"]
+            print("🔍 [DEBUG] question_text:", question_text)
+            # 질문 임베딩
+            question_paragraph = _convert_to_paragraph(
+                prompt_path="./ai/prompts/question-paragraph.txt",
+                data=question_text,
+            )
+            print("🔍 [DEBUG] question_paragraph:", question_paragraph)
+            embedding_response = client.embeddings.create(
+                input=question_paragraph,
+                model="text-embedding-3-small",
+            )
+            query_embedding = embedding_response.data[0].embedding
+            print("🔍 [DEBUG] embedding length:", len(query_embedding))
+            # 추천
+            response = supabase.rpc(
+                "match_documents",
                 {
-                    "activity_name": "패스트캠퍼스",
-                    "event_name": "서비스기획(PM) 온라인 교육 수강",
-                    "situation": "PM 관련 교육 수강 경험",
-                    "task": "실제 프로젝트 기반 과제 수행",
-                    "action": "문제 정의 및 개선 아이디어 제안",
-                    "result": "개발 역량과 문제 해결력 강화",
-                    "contribution": 90.0,
-                    "comment": "서비스 개발 관심과 실행력을 보여주는 이벤트입니다."
+                    "query_embedding": query_embedding,
+                    "match_threshold": 0.0,
+                    "match_count": 2,
                 },
-                {
-                    "activity_name": "멋쟁이사자처럼",
-                    "event_name": "해커톤 프로젝트",
-                    "situation": "팀 해커톤에서 웹서비스 개발",
-                    "task": "백엔드 개발 담당",
-                    "action": "API 설계 및 구현",
-                    "result": "최우수상 수상",
-                    "contribution": 85.0,
-                    "comment": "실무 개발 경험과 협업 능력을 강조할 수 있습니다."
-                },
-                {
-                    "activity_name": "대학신문 활동",
-                    "event_name": "사설 프로세스 개선",
-                    "situation": "편집장으로서 프로세스 문제 인식",
-                    "task": "문제 진단 및 개선안 설계",
-                    "action": "새로운 제작 프로세스 도입",
-                    "result": "오류율 50% 감소",
-                    "contribution": 80.0,
-                    "comment": "문제 해결 과정이 잘 드러납니다."
-                }
-            ],
-            "tip": "이런 활동들을 중심으로 문항을 구성하면 문제 해결력과 실행력이 더 명확하게 드러납니다."
-        }
+            ).execute()
+            print("🔍 [DEBUG] supabase.rpc response:", response)
+            print("🔍 [DEBUG] supabase.rpc data:", getattr(response, "data", None))
+            candidate_events = response.data or []
+            if not candidate_events:
+                return Response({"error": "No matching events"}, status=404)
 
-        return JsonResponse(ai_result, status=200)
+            top5 = candidate_events[:1]
+            print("🔍 [DEBUG] top5 candidate events:", top5)
+            
+            llm_prompt = _convert_to_paragraph(
+                prompt_path="./ai/prompts/application-recommend-events.txt",
+                data=json.dumps({
+                    "question_text": question_text,
+                    "events": top5
+                }, ensure_ascii=False)
+            )
 
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+            llm_resp = client.responses.create(
+                model="gpt-4o-mini",
+                response_format={"type": "json"},
+                input=llm_prompt
+            )
+            print("🔍 [DEBUG] llm_resp:", llm_resp)
+
+            llm_output = json.loads(llm_resp.output_text)
+            print("🔍 [DEBUG] llm_output:", llm_output)
+            # 5. 최종 결과 합치기
+            result = {
+                "analysis": llm_output.get("analysis", ""),
+                "suggested_events": [
+                    {
+                        "activity_name": ev.get("activity_name", ""),
+                        "event_name": ev.get("event_name", ""),
+                        "situation": ev.get("situation", ""),
+                        "task": ev.get("task", ""),
+                        "action": ev.get("action", ""),
+                        "result": ev.get("result", ""),
+                        "contribution": float(ev.get("contribution", 0.0)),
+                        "comment": com.get("comment", "추천된 이벤트입니다."),
+                    }
+                    for ev, com in zip(top5, llm_output.get("suggested_events", []))
+                ],
+                "tip": llm_output.get("tip", "")
+            }
+            print("[DEBUG] Final result ready:", result)
+
+            return Response(result, status=200)
+
+        except Exception as e:
+            print("[DEBUG] Exception occurred:", str(e))
+            return Response(
+                {"error": "Failed to recommend events", "detail": str(e)},
+                status=500,
+            )
 
 
 #for 3-1. get: 문항별 작성 가이드라인 
