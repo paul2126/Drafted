@@ -469,9 +469,17 @@ class RecommendEventsView(APIView):
             if not candidate_events:
                 return Response({"error": "No matching events"}, status=404)
 
-            top5 = candidate_events[:1]
-            print("🔍 [DEBUG] top5 candidate events:", top5)
-            
+            top5 = candidate_events[:2]
+            print("🔍 [DEBUG] top2 candidate events:", top5)
+            event_ids = [ev["event_id"] for ev in top5]
+            events_detail = (
+                supabase.table("event")
+                .select("id, event_name, situation, task, action, result, contribution")
+                .in_("id", event_ids)
+                .execute()
+            )
+            events_map = {e["id"]: e for e in events_detail.data}
+
             llm_prompt = _convert_to_paragraph(
                 prompt_path="./ai/prompts/application-recommend-events.txt",
                 data=json.dumps({
@@ -479,33 +487,36 @@ class RecommendEventsView(APIView):
                     "events": top5
                 }, ensure_ascii=False)
             )
+            print("🔍 [DEBUG] llm_prompt:",  type(llm_prompt))
 
-            llm_resp = client.responses.create(
-                model="gpt-4o-mini",
-                response_format={"type": "json"},
-                input=llm_prompt
-            )
-            print("🔍 [DEBUG] llm_resp:", llm_resp)
+            if isinstance(llm_prompt, str):
+                try:
+                    llm_prompt = json.loads(llm_prompt)
+                except json.JSONDecodeError:
+                    llm_prompt = {}   # JSON 파싱 실패 시 안전한 기본값
+            elif not isinstance(llm_prompt, dict):
+                llm_prompt = {}
+            print("🔍 [DEBUG] llm_prompt:",  type(llm_prompt))
+            print("🔍 [DEBUG] llm_prompt:",  llm_prompt)
 
-            llm_output = json.loads(llm_resp.output_text)
-            print("🔍 [DEBUG] llm_output:", llm_output)
             # 5. 최종 결과 합치기
+            suggested_events = []
+            for ev, com in zip(top5, llm_prompt.get("suggested_events", [])):
+                detail = events_map.get(ev["event_id"], {})
+                suggested_events.append({
+                    "event_id": ev["event_id"],
+                    "event_name": detail.get("event_name", ""),
+                    "situation": detail.get("situation", ""),
+                    "task": detail.get("task", ""),
+                    "action": detail.get("action", ""),
+                    "result": detail.get("result", ""),
+                    "contribution": detail.get("contribution", ""),
+                    "similarity": ev.get("similarity", 0.0),
+                    "comment": com.get("comment", "추천된 이벤트입니다."),
+                })
+
             result = {
-                "analysis": llm_output.get("analysis", ""),
-                "suggested_events": [
-                    {
-                        "activity_name": ev.get("activity_name", ""),
-                        "event_name": ev.get("event_name", ""),
-                        "situation": ev.get("situation", ""),
-                        "task": ev.get("task", ""),
-                        "action": ev.get("action", ""),
-                        "result": ev.get("result", ""),
-                        "contribution": float(ev.get("contribution", 0.0)),
-                        "comment": com.get("comment", "추천된 이벤트입니다."),
-                    }
-                    for ev, com in zip(top5, llm_output.get("suggested_events", []))
-                ],
-                "tip": llm_output.get("tip", "")
+                "suggested_events": suggested_events,
             }
             print("[DEBUG] Final result ready:", result)
 

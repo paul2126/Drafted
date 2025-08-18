@@ -211,7 +211,7 @@ class QuestionEventRecommendView(APIView):
         if ai_response.status_code != 200:
             return Response({"error": "AI 응답 오류"}, status=status.HTTP_502_BAD_GATEWAY)
 
-        ai_data = ai_response.json()
+        ai_data = json.loads(ai_response.content)
         ### 짜둔 지원서 구조화하기 LLM 프롬프트 쓸 때 => 프론트 요구 형태로 변환
         eventlist = [
             {
