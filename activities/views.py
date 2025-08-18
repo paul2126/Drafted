@@ -31,7 +31,7 @@ class ActivityListView(APIView):
         for activity in activities_result.data:
             activity_data = {
                 "id": activity.get("id"),
-                "title": activity.get("name"),
+                "title": activity.get("activity_name"),
                 "category": activity.get("category"),
                 "startDate": activity.get("start_date"),
                 "endDate": activity.get("end_date"),
