@@ -15,7 +15,7 @@ import requests
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from utils.supabase_utils import get_supabase_client, get_user_id_from_token
-from ai.views import generate_question_guideline
+from ai.views import generate_question_guideline,generate_editor_guideline
 
 import json
 from django.http import JsonResponse
@@ -245,17 +245,21 @@ class QuestionEditorGuidelineView(APIView):
         operation_description="특정 문항에 대한 작성 가이드라인을 반환합니다.",
         responses={200: openapi.Response("작성 가이드라인", examples={"application/json": {"question_id": 1, "content": "### 작성 팁..."}})},
     )
-    def get(self, request, question_id):
+    def get(self, request, question_id:int):
         question = get_object_or_404(QuestionList, id=question_id)
-        payload = {"question_id": question.id, "question": question.question}
 
         try:
-            ai_response = requests.post(settings.AI_EDITOR_GUIDELINE_URL, json=payload, timeout=10)
-            if ai_response.status_code != 200:
-                return Response({"error": "AI 서버 오류"}, status=status.HTTP_502_BAD_GATEWAY)
+        
+            ai_result = generate_editor_guideline( question.question, question.id)
+            print(type(ai_result), ai_result)
+            if isinstance(ai_result, JsonResponse):
+                ai_data = json.loads(ai_result.content)
+            else:
+                ai_data = ai_result
+            print(type(ai_data), ai_data )
 
-            ai_data = ai_response.json()
-            return Response(ai_data, status=status.HTTP_200_OK)
-
+            serializer = QuestionGuideSerializer(data=ai_data)
+            serializer.is_valid(raise_exception=True)
+            return Response(serializer.validated_data, status=200)
         except requests.exceptions.RequestException as e:
             return Response({"error": f"AI 서버 요청 실패: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)

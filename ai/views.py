@@ -521,30 +521,69 @@ class RecommendEventsView(APIView):
 
 #for 3-1. get: 문항별 작성 가이드라인 
 
-def generate_editor_guideline(request):
-    if request.method != "POST":
-        return JsonResponse({"error": "Only POST allowed"}, status=405)
+def generate_editor_guideline( question,question_id: int,event_id: int = None) -> dict:
+ 
+    if not question:
+        return JsonResponse({"error": "question query param is required"}, status=400)
+    event_data = None
+    if event_id:
+        try:
+            from .models import Event  # 모델 경로는 프로젝트 구조에 맞게 조정
+            event = Event.objects.filter(id=event_id).first()
+            if event:
+                event_data = {
+                    "id": event.id,
+                    "name": event.name,
+                    "situation": event.situation,
+                    "task": event.task,
+                    "action": event.action,
+                    "result": event.result,
+                    "contribution": event.contribution,
+                }
+        except Exception as e:
+            print("Event fetch error:", e)
+            
+    prompt_data = {
+        "question_id": question_id,
+        "question": question.strip(),
+    }
+    if event_data:
+        prompt_data["event"] = event_data
 
+    guideline_prompt = _convert_to_paragraph(
+        prompt_path="./ai/prompts/application-editor-guideline.txt",
+        data=json.dumps(prompt_data, ensure_ascii=False),
+    )
     try:
-        data = json.loads(request.body)
-        question_id = data.get("question_id", 0)
-        #Mock response - replace with actual AI call
-        dummy_response = {
-            "question_id": question_id,
-            "content": (
-                "### 1. 관점 설정\n"
-                "단순히 활동이 좋았다는 것이 아니라, 문제의식과 동기를 설명하세요.\n\n"
-                "### 2. 경험 연결\n"
-                "활동과 과거 경험을 구체적으로 연결하여 작성하세요.\n\n"
-                "### 3. 해당 활동의 의미\n"
-                "활동에서의 역할과 성과를 강조하세요.\n\n"
-                "### 4. 구체적인 목표와 열정 강조\n"
-                "앞으로의 목표와 실행 의지를 드러내세요."
-            )
-        }
+        resp = client.responses.create(
+            model="gpt-4o-mini",
 
-        return JsonResponse(dummy_response, status=200)
+            temperature=0.4,
+            max_output_tokens=512,
+            input=[{"role": "user", "content": guideline_prompt}], 
+        )    
+        output_text = getattr(resp, "output_text", None)
+        print("resp:", resp)
+        try:
+            data = json.loads(output_text)
+        except json.JSONDecodeError:
+            # JSON이 아니면 fallback
+            data = {
+                "question_id": question_id,
+                "content": output_text.strip()
+            }
+        return JsonResponse(
+            {
+                "question_id": int(data.get("question_id", question_id)),
+                "content": (data.get("content") or "").strip(),
+            },
+            status=200,
+        )
 
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse(
+            {"error": "AI generation failed", "detail": str(e)},
+            status=502,
+        )
+
 ###############################################################
