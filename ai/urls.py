@@ -6,6 +6,7 @@ from .views import (
     EventSuggestionsView,
     ChatSessionView,
     ChatMessageView,
+
 )
 from django.urls import include
 
@@ -57,4 +58,6 @@ urlpatterns = [
     #     ),
     # ),
     # path("analyze/", views.analyze_question, name="analyze-question"),
+    # application ai
+
 ]

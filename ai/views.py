@@ -359,188 +359,231 @@ class ChatMessageView(APIView):
 #     return chunks
 
 
-##############################application views 를 위한 임시###################
-# for applications 2-1
-@csrf_exempt
-def generate_question_guideline(request):
-    """
-    지원서 문항에 대한 '작성 가이드라인'을 AI로 생성 (현재 Mock)
-    """
-    if request.method != "POST":
-        return JsonResponse({"error": "Only POST allowed"}, status=405)
+# applications app 용 ai
+##############################application views 를 위한 임시 목업 결과들..###################
+#for applications 2-1 
 
+
+def generate_question_guideline( question,question_id: int) -> dict:
+    """
+    지원서 문항 가이드라인 생성
+    요청(JSON):     GET /ai/application/<question_id>/guideline/?question=문항내용
+    응답(JSON): { "question_id": number, "content": string }
+    - 프롬프트는 `_convert_to_paragraph(prompt_path, data=...)` 한 번으로 구성
+    - 모델 응답은 Strict JSON 스키마로 강제
+    """
+    if not question:
+        return JsonResponse({"error": "question query param is required"}, status=400)
+
+    guideline_prompt = _convert_to_paragraph(
+        prompt_path="./ai/prompts/application-question-guideline.txt",
+        data=json.dumps({"question_id": question_id, "question": question.strip()}, ensure_ascii=False),
+    )
     try:
-        data = json.loads(request.body)
-        question = data.get("question", "")
+        resp = client.responses.create(
+            model="gpt-4o-mini",
 
-        if not question:
-            return JsonResponse({"error": "question is required"}, status=400)
+            temperature=0.4,
+            max_output_tokens=512,
+            input=[{"role": "user", "content": guideline_prompt}], 
+        )    
+        output_text = getattr(resp, "output_text", None)
+        print("resp:", resp)
+        try:
+            data = json.loads(output_text)
+        except json.JSONDecodeError:
+            # JSON이 아니면 fallback
+            data = {
+                "question_id": question_id,
+                "content": output_text.strip()
+            }
+        return JsonResponse(
+            {
+                "question_id": int(data.get("question_id", question_id)),
+                "content": (data.get("content") or "").strip(),
+            },
+            status=200,
+        )
 
-        # Mock response - replace with actual AI call
-        response = {
-            "question_id": data.get("question_id", 0),
-            "content": (
-                f"문항 '{question[:15]}...'은 개인 동기와 경험을 연결하여 "
-                f"지원 동기의 진정성과 실행 의지를 드러내는 것이 효과적입니다. "
-                f"구체적인 프로젝트 경험, 자발적 활동, 실무 체험을 포함하면 좋습니다."
-            ),
-        }
+    except Exception as e:
+        return JsonResponse(
+            {"error": "AI generation failed", "detail": str(e)},
+            status=502,
+        )
+#for 2-2 . get: 문항별 AI 추천 활동 5개
+class RecommendEventsView(APIView):
+    """문항 임베딩 기반 활동/이벤트 추천"""
+    @swagger_auto_schema(
+        operation_summary="Recommend Events for Question",
+        operation_description="Find top 5 matching activities/events for a given application question",
+        responses={200: "Recommended events returned"},
+        tags=["AI Question Analysis"],
+    )
+    def get(self, request, question_id: int):
+        try:
+            print("🔍 [DEBUG] Start RecommendEventsView.get")
+            supabase = get_supabase_client(request)
+            user_id = get_user_id_from_token(request)
 
-        return JsonResponse(response, status=200)
+            print(f"🔍 [DEBUG] user_id={user_id}, question_id={question_id}")
+            # 질문 가져오기
+            question = (
+                supabase.table("question_list")
+                .select("application!inner(user_id), question")
+                .eq("application.user_id", user_id)
+                .eq("id", question_id) 
+                .execute()
+            )
+            print("🔍 [DEBUG] question raw response:", question)
+            print("🔍 [DEBUG] question data:", getattr(question, "data", None))
+            print("🔍 [DEBUG] question query result:", question.data)
+            if not question.data:
+                return Response({"error": "Question not found"}, status=404)
 
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
-
-
-# for 2-2 . get: 문항별 AI 추천 활동 5개
-
-
-@csrf_exempt
-def recommend_events(request):
-    """
-    AI: 문항별 추천 활동 5개 + 문항 분석 결과 반환 (Mock 버전)
-    출력: analysis(문항 분석), suggested_events(추천 이벤트), tip(작성 팁)
-    """
-    if request.method != "POST":
-        return JsonResponse({"error": "Only POST allowed"}, status=405)
-
-    try:
-        data = json.loads(request.body)
-        question_id = data.get("question_id", 0)
-        question = data.get("question", "")
-
-        # Mock response - replace with actual AI call
-        ai_result = {
-            "analysis": f"문항 '{question[:15]}...'은 문제 해결력과 실행력을 평가합니다.",
-            "suggested_events": [
+            question_text = question.data[0]["question"]
+            print("🔍 [DEBUG] question_text:", question_text)
+            # 질문 임베딩
+            question_paragraph = _convert_to_paragraph(
+                prompt_path="./ai/prompts/question-paragraph.txt",
+                data=question_text,
+            )
+            print("🔍 [DEBUG] question_paragraph:", question_paragraph)
+            embedding_response = client.embeddings.create(
+                input=question_paragraph,
+                model="text-embedding-3-small",
+            )
+            query_embedding = embedding_response.data[0].embedding
+            print("🔍 [DEBUG] embedding length:", len(query_embedding))
+            # 추천
+            response = supabase.rpc(
+                "match_documents",
                 {
-                    "activity_name": "패스트캠퍼스",
-                    "event_name": "서비스기획(PM) 온라인 교육 수강",
-                    "situation": "PM 관련 교육 수강 경험",
-                    "task": "실제 프로젝트 기반 과제 수행",
-                    "action": "문제 정의 및 개선 아이디어 제안",
-                    "result": "개발 역량과 문제 해결력 강화",
-                    "contribution": 90.0,
-                    "comment": "서비스 개발 관심과 실행력을 보여주는 이벤트입니다.",
+                    "query_embedding": query_embedding,
+                    "match_threshold": 0.0,
+                    "match_count": 2,
                 },
-                {
-                    "activity_name": "멋쟁이사자처럼",
-                    "event_name": "해커톤 프로젝트",
-                    "situation": "팀 해커톤에서 웹서비스 개발",
-                    "task": "백엔드 개발 담당",
-                    "action": "API 설계 및 구현",
-                    "result": "최우수상 수상",
-                    "contribution": 85.0,
-                    "comment": "실무 개발 경험과 협업 능력을 강조할 수 있습니다.",
-                },
-                {
-                    "activity_name": "대학신문 활동",
-                    "event_name": "사설 프로세스 개선",
-                    "situation": "편집장으로서 프로세스 문제 인식",
-                    "task": "문제 진단 및 개선안 설계",
-                    "action": "새로운 제작 프로세스 도입",
-                    "result": "오류율 50% 감소",
-                    "contribution": 80.0,
-                    "comment": "문제 해결 과정이 잘 드러납니다.",
-                },
-            ],
-            "tip": "이런 활동들을 중심으로 문항을 구성하면 문제 해결력과 실행력이 더 명확하게 드러납니다.",
-        }
+            ).execute()
+            print("🔍 [DEBUG] supabase.rpc response:", response)
+            print("🔍 [DEBUG] supabase.rpc data:", getattr(response, "data", None))
+            candidate_events = response.data or []
+            if not candidate_events:
+                return Response({"error": "No matching events"}, status=404)
 
-        return JsonResponse(ai_result, status=200)
+            top5 = candidate_events[:1]
+            print("🔍 [DEBUG] top5 candidate events:", top5)
+            
+            llm_prompt = _convert_to_paragraph(
+                prompt_path="./ai/prompts/application-recommend-events.txt",
+                data=json.dumps({
+                    "question_text": question_text,
+                    "events": top5
+                }, ensure_ascii=False)
+            )
 
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+            llm_resp = client.responses.create(
+                model="gpt-4o-mini",
+                response_format={"type": "json"},
+                input=llm_prompt
+            )
+            print("🔍 [DEBUG] llm_resp:", llm_resp)
+
+            llm_output = json.loads(llm_resp.output_text)
+            print("🔍 [DEBUG] llm_output:", llm_output)
+            # 5. 최종 결과 합치기
+            result = {
+                "analysis": llm_output.get("analysis", ""),
+                "suggested_events": [
+                    {
+                        "activity_name": ev.get("activity_name", ""),
+                        "event_name": ev.get("event_name", ""),
+                        "situation": ev.get("situation", ""),
+                        "task": ev.get("task", ""),
+                        "action": ev.get("action", ""),
+                        "result": ev.get("result", ""),
+                        "contribution": float(ev.get("contribution", 0.0)),
+                        "comment": com.get("comment", "추천된 이벤트입니다."),
+                    }
+                    for ev, com in zip(top5, llm_output.get("suggested_events", []))
+                ],
+                "tip": llm_output.get("tip", "")
+            }
+            print("[DEBUG] Final result ready:", result)
+
+            return Response(result, status=200)
+
+        except Exception as e:
+            print("[DEBUG] Exception occurred:", str(e))
+            return Response(
+                {"error": "Failed to recommend events", "detail": str(e)},
+                status=500,
+            )
 
 
-# for 3-1. get: 문항별 작성 가이드라인
-@csrf_exempt
-def generate_editor_guideline(request):
-    if request.method != "POST":
-        return JsonResponse({"error": "Only POST allowed"}, status=405)
+#for 3-1. get: 문항별 작성 가이드라인 
 
+def generate_editor_guideline( question,question_id: int,event_id: int = None) -> dict:
+ 
+    if not question:
+        return JsonResponse({"error": "question query param is required"}, status=400)
+    event_data = None
+    if event_id:
+        try:
+            from .models import Event  # 모델 경로는 프로젝트 구조에 맞게 조정
+            event = Event.objects.filter(id=event_id).first()
+            if event:
+                event_data = {
+                    "id": event.id,
+                    "name": event.name,
+                    "situation": event.situation,
+                    "task": event.task,
+                    "action": event.action,
+                    "result": event.result,
+                    "contribution": event.contribution,
+                }
+        except Exception as e:
+            print("Event fetch error:", e)
+            
+    prompt_data = {
+        "question_id": question_id,
+        "question": question.strip(),
+    }
+    if event_data:
+        prompt_data["event"] = event_data
+
+    guideline_prompt = _convert_to_paragraph(
+        prompt_path="./ai/prompts/application-editor-guideline.txt",
+        data=json.dumps(prompt_data, ensure_ascii=False),
+    )
     try:
-        data = json.loads(request.body)
-        question_id = data.get("question_id", 0)
-        # Mock response - replace with actual AI call
-        dummy_response = {
-            "question_id": question_id,
-            "content": (
-                "### 1. 관점 설정\n"
-                "단순히 활동이 좋았다는 것이 아니라, 문제의식과 동기를 설명하세요.\n\n"
-                "### 2. 경험 연결\n"
-                "활동과 과거 경험을 구체적으로 연결하여 작성하세요.\n\n"
-                "### 3. 해당 활동의 의미\n"
-                "활동에서의 역할과 성과를 강조하세요.\n\n"
-                "### 4. 구체적인 목표와 열정 강조\n"
-                "앞으로의 목표와 실행 의지를 드러내세요."
-            ),
-        }
+        resp = client.responses.create(
+            model="gpt-4o-mini",
 
-        return JsonResponse(dummy_response, status=200)
+            temperature=0.4,
+            max_output_tokens=512,
+            input=[{"role": "user", "content": guideline_prompt}], 
+        )    
+        output_text = getattr(resp, "output_text", None)
+        print("resp:", resp)
+        try:
+            data = json.loads(output_text)
+        except json.JSONDecodeError:
+            # JSON이 아니면 fallback
+            data = {
+                "question_id": question_id,
+                "content": output_text.strip()
+            }
+        return JsonResponse(
+            {
+                "question_id": int(data.get("question_id", question_id)),
+                "content": (data.get("content") or "").strip(),
+            },
+            status=200,
+        )
 
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
-
-
-# for 3-1. get: 문항별 작성 가이드라인
-@csrf_exempt
-def editor_guideline(request):
-    if request.method != "POST":
-        return JsonResponse({"error": "Only POST allowed"}, status=405)
-
-    try:
-        data = json.loads(request.body)
-        question_id = data.get("question_id", 0)
-        # Mock response - replace with actual AI call
-        dummy_response = {
-            "question_id": question_id,
-            "content": (
-                "### 1. 관점 설정\n"
-                "단순히 활동이 좋았다는 것이 아니라, 문제의식과 동기를 설명하세요.\n\n"
-                "### 2. 경험 연결\n"
-                "활동과 과거 경험을 구체적으로 연결하여 작성하세요.\n\n"
-                "### 3. 해당 활동의 의미\n"
-                "활동에서의 역할과 성과를 강조하세요.\n\n"
-                "### 4. 구체적인 목표와 열정 강조\n"
-                "앞으로의 목표와 실행 의지를 드러내세요."
-            ),
-        }
-
-        return JsonResponse(dummy_response, status=200)
-
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
-
-
-# for 3-1. get: 문항별 작성 가이드라인
-@csrf_exempt
-def editor_guideline(request):
-    if request.method != "POST":
-        return JsonResponse({"error": "Only POST allowed"}, status=405)
-
-    try:
-        data = json.loads(request.body)
-        question_id = data.get("question_id", 0)
-        # Mock response - replace with actual AI call
-        dummy_response = {
-            "question_id": question_id,
-            "content": (
-                "### 1. 관점 설정\n"
-                "단순히 활동이 좋았다는 것이 아니라, 문제의식과 동기를 설명하세요.\n\n"
-                "### 2. 경험 연결\n"
-                "활동과 과거 경험을 구체적으로 연결하여 작성하세요.\n\n"
-                "### 3. 해당 활동의 의미\n"
-                "활동에서의 역할과 성과를 강조하세요.\n\n"
-                "### 4. 구체적인 목표와 열정 강조\n"
-                "앞으로의 목표와 실행 의지를 드러내세요."
-            ),
-        }
-
-        return JsonResponse(dummy_response, status=200)
-
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
-
+    except Exception as e:
+        return JsonResponse(
+            {"error": "AI generation failed", "detail": str(e)},
+            status=502,
+        )
 
 ###############################################################

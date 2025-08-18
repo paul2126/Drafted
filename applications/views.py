@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from users.models import Profile
 from .models import Application, QuestionList
 from .serializers import ApplicationCreateSerializer,  EventRecommendSerializer,QuestionGuideSerializer , ApplicationListSerializer,ApplicationDetailQuestionSerializer
+from ai.utils import recommend_events
 
 from django.conf import settings
 import requests
@@ -14,9 +15,10 @@ import requests
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from utils.supabase_utils import get_supabase_client, get_user_id_from_token
+from ai.views import generate_question_guideline,generate_editor_guideline
 
-
-
+import json
+from django.http import JsonResponse
 #1. 지원서 작성 및 목록 조회
 #1-1. post: 새 지원서 작성
 class ApplicationCreateView(APIView):
@@ -166,21 +168,24 @@ class QuestionGuidelineView(APIView):
         operation_description="특정 문항에 대한 AI 활동 가이드라인을 반환합니다.",
         responses={200: QuestionGuideSerializer()},
     )
-    def get(self, request, question_id):
+ 
+    def get(self, request, question_id:int):
         question = get_object_or_404(QuestionList, id=question_id)
-
-        payload = {"question_id": question.id, "question": question.question}
+        #ai_url = settings.AI_GUIDELINE_URL.format(question_id=question.id)
 
         try:
-            ai_response = requests.post(settings.AI_GUIDELINE_URL, json=payload, timeout=10)
+        
+            ai_result = generate_question_guideline( question.question, question.id)
+            print(type(ai_result), ai_result)
+            if isinstance(ai_result, JsonResponse):
+                ai_data = json.loads(ai_result.content)
+            else:
+                ai_data = ai_result
+            print(type(ai_data), ai_data )
 
-            if ai_response.status_code != 200:
-                return Response({"error": "AI 서버 오류"}, status=status.HTTP_502_BAD_GATEWAY)
-
-            ai_data = ai_response.json()
-            serializer = QuestionGuideSerializer(ai_data)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
+            serializer = QuestionGuideSerializer(data=ai_data)
+            serializer.is_valid(raise_exception=True)
+            return Response(serializer.validated_data, status=200)
         except requests.exceptions.RequestException as e:
             return Response({"error": f"AI 서버 요청 실패: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
 
@@ -192,17 +197,19 @@ class QuestionEventRecommendView(APIView):
       operation_description="특정 문항과 관련된 AI 추천 활동 5개를 반환합니다.",
       responses={200: EventRecommendSerializer()},
   )
-  def get(self, request, question_id):
+  def get(self, request, question_id: int):
     question = get_object_or_404(QuestionList, id=question_id)
     payload = {
         "question_id": question.id,
         "question": question.question
     }
+    
     try:
-        ai_response = requests.post(settings.AI_RECOMMEND_URL, json=payload, timeout=10)
+        ai_response = recommend_events(question_id, request)
+
 
         if ai_response.status_code != 200:
-            return Response({"error": "AI 서버 오류"}, status=status.HTTP_502_BAD_GATEWAY)
+            return Response({"error": "AI 응답 오류"}, status=status.HTTP_502_BAD_GATEWAY)
 
         ai_data = ai_response.json()
         ### 짜둔 지원서 구조화하기 LLM 프롬프트 쓸 때 => 프론트 요구 형태로 변환
@@ -238,17 +245,21 @@ class QuestionEditorGuidelineView(APIView):
         operation_description="특정 문항에 대한 작성 가이드라인을 반환합니다.",
         responses={200: openapi.Response("작성 가이드라인", examples={"application/json": {"question_id": 1, "content": "### 작성 팁..."}})},
     )
-    def get(self, request, question_id):
+    def get(self, request, question_id:int):
         question = get_object_or_404(QuestionList, id=question_id)
-        payload = {"question_id": question.id, "question": question.question}
 
         try:
-            ai_response = requests.post(settings.AI_EDITOR_GUIDELINE_URL, json=payload, timeout=10)
-            if ai_response.status_code != 200:
-                return Response({"error": "AI 서버 오류"}, status=status.HTTP_502_BAD_GATEWAY)
+        
+            ai_result = generate_editor_guideline( question.question, question.id)
+            print(type(ai_result), ai_result)
+            if isinstance(ai_result, JsonResponse):
+                ai_data = json.loads(ai_result.content)
+            else:
+                ai_data = ai_result
+            print(type(ai_data), ai_data )
 
-            ai_data = ai_response.json()
-            return Response(ai_data, status=status.HTTP_200_OK)
-
+            serializer = QuestionGuideSerializer(data=ai_data)
+            serializer.is_valid(raise_exception=True)
+            return Response(serializer.validated_data, status=200)
         except requests.exceptions.RequestException as e:
             return Response({"error": f"AI 서버 요청 실패: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
