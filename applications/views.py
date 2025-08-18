@@ -207,28 +207,33 @@ class QuestionEventRecommendView(APIView):
     try:
         ai_response = recommend_events(question_id, request)
 
-
+        print("🔍 [DEBUG] AI 추천 활동 응답 타입:", type(ai_response))
         if ai_response.status_code != 200:
             return Response({"error": "AI 응답 오류"}, status=status.HTTP_502_BAD_GATEWAY)
-
-        ai_data = json.loads(ai_response.content)
-        ### 짜둔 지원서 구조화하기 LLM 프롬프트 쓸 때 => 프론트 요구 형태로 변환
+        elif isinstance(ai_response, JsonResponse):
+            ai_data = json.loads(ai_response.content)
+        elif isinstance(ai_response, Response):
+            ai_data = ai_response.data
+        else:
+            ai_data = ai_response
+        print("🔍 [DEBUG] ai_data type:", type(ai_data), ai_data)
         eventlist = [
             {
                 "id": idx + 1,
                 "title": e["event_name"],
                 "activity": e["activity_name"],
                 "comment": e["comment"],
-                "is_recommended": (e.get("contribution", 0) >= 70.0)
+                "is_recommended": (e.get("similarity", 0) >= 0.35)
             }
             for idx, e in enumerate(ai_data.get("suggested_events", [])[:5])
         ]
 
         response_data = {
             "question_id": question.id,
-            "suggestion": ai_data.get("analysis", "AI 분석 결과 없음"),
+            #"suggestion": ai_data.get("analysis", "AI 분석 결과 없음"),
             "eventlist": eventlist
         }
+        print("🔍 [DEBUG] AI 추천 활동 데이터:", response_data)
 
         serializer = EventRecommendSerializer(data=response_data)
         if serializer.is_valid():

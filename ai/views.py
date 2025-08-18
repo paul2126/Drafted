@@ -474,11 +474,20 @@ class RecommendEventsView(APIView):
             event_ids = [ev["event_id"] for ev in top5]
             events_detail = (
                 supabase.table("event")
-                .select("id, event_name, situation, task, action, result, contribution")
+                .select("id, event_name, situation, task, action, result, contribution, activity_id")
                 .in_("id", event_ids)
                 .execute()
             )
+
+            activity_ids = [e["activity_id"] for e in events_detail.data if e.get("activity_id")]
+            activities = (
+                supabase.table("activity")
+                .select("id,activity_name")
+                .in_("id", activity_ids)
+                .execute()
+            )
             events_map = {e["id"]: e for e in events_detail.data}
+            activity_map = {a["id"]: a["activity_name"] for a in activities.data}
 
             llm_prompt = _convert_to_paragraph(
                 prompt_path="./ai/prompts/application-recommend-events.txt",
@@ -503,7 +512,9 @@ class RecommendEventsView(APIView):
             suggested_events = []
             for ev, com in zip(top5, llm_prompt.get("suggested_events", [])):
                 detail = events_map.get(ev["event_id"], {})
+                activity_name = activity_map.get(detail.get("activity_id"), "")
                 suggested_events.append({
+                    "activity_name": activity_name,
                     "event_id": ev["event_id"],
                     "event_name": detail.get("event_name", ""),
                     "situation": detail.get("situation", ""),
