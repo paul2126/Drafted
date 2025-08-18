@@ -70,7 +70,7 @@ class ProfileInfoView(APIView):
         responses={200: ProfileInfoSerializer(many=False), 404: "Profile not found"},
         tags=["Profile"],
     )
-    def get(self, request):
+    def get(self, request, user_id):
         supabase = get_supabase_client(request)
         user_id = get_user_id_from_token(request)
 

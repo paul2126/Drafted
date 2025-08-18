@@ -193,9 +193,24 @@ class ActivityDetailView(APIView):
         supabase = get_supabase_client(request)
         user_id = get_user_id_from_token(request)
 
-        # Regular partial update
-        update_data = {k: v for k, v in request.data.items() if v is not None}
+        # # Regular partial update
+        # update_data = {k: v for k, v in request.data.items() if v is not None}
+        # Use the serializer to validate and map fields
+        serializer = ActivityUpdateSerializer(data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        # Get validated data with proper field mapping
+        validated_data = serializer.validated_data
+
+        # Convert datetime objects to ISO format for Supabase
+        update_data = {}
+        for key, value in validated_data.items():
+            if value is not None:
+                if hasattr(value, "isoformat"):  # datetime objects
+                    update_data[key] = value.isoformat()
+                else:
+                    update_data[key] = value
         result = (
             supabase.table("activity")
             .update(update_data)

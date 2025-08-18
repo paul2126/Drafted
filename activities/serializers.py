@@ -127,8 +127,12 @@ class EventSerializer(serializers.ModelSerializer):
 
 class EventCreateUpdateSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source="event_name", help_text="이벤트 제목")
-    startDate = serializers.DateField(source="start_date", help_text="시작일")
-    endDate = serializers.DateField(source="end_date", help_text="종료일")
+    startDate = serializers.DateField(
+        source="start_date", required=False, help_text="시작일"
+    )
+    endDate = serializers.DateField(
+        source="end_date", required=False, help_text="종료일"
+    )
 
     class Meta:
         model = Event
