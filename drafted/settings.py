@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env()
 
-#environ.Env.read_env(env_file=os.path.join(BASE_DIR, ".env"))
+# environ.Env.read_env(env_file=os.path.join(BASE_DIR, ".env"))
 env_file = os.path.join(BASE_DIR, ".env")
 if os.path.exists(env_file):
     environ.Env.read_env(env_file)
@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     "rest_framework",
     "utils",
+    "chat",
 ]
 
 MIDDLEWARE = [
@@ -136,7 +137,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
     "http://localhost:5175",
     "http://localhost:5176",
-    "http://localhost:5177"
+    "http://localhost:5177",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -156,7 +157,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "/static/"
-STATIC_ROOT = '/home/ubuntu/Drafted/staticfiles/'
+STATIC_ROOT = "/home/ubuntu/Drafted/staticfiles/"
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -169,10 +170,3 @@ REST_FRAMEWORK = {
 }
 
 
-
-### AI settings for applications app
-#AI_BASE_URL = "https://api.drafty.site/ai"
-AI_BASE_URL="http://127.0.0.1:8000/ai"
-AI_GUIDELINE_URL = f"{AI_BASE_URL}/{{question_id}}/guideline/"
-AI_RECOMMEND_URL = f"{AI_BASE_URL}/{{question_id}}/recommend/"
-AI_EDITOR_GUIDELINE_URL =  f"{AI_BASE_URL}/{{question_id}}/editor-guideline/"
