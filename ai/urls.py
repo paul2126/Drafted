@@ -3,9 +3,10 @@ from . import views
 from .views import (
     GenerateEmbeddingsView,
     AnalyzeQuestionView,
-    EventSuggestionsView,
+    EventSuggestionView,
     ChatSessionView,
     ChatMessageView,
+    EventSuggestionListView,
 
 )
 from django.urls import include
@@ -27,9 +28,10 @@ urlpatterns = [
                 ),
                 path(
                     "suggestions/",
-                    EventSuggestionsView.as_view(),
+                    EventSuggestionView.as_view(),
                     name="event-suggestions",
                 ),
+                path("suggestions/<int:question_id>/", EventSuggestionListView.as_view(), name="event-suggestions-list"),
             ]
         ),
     ),
