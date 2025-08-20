@@ -318,14 +318,14 @@ class AnalyzeQuestionView(APIView):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
-
+'''
 class EventSuggestionsView(APIView):
     """Find matching Event for question"""
 
     def post(self, request):
         # Vector similarity search
         pass
-
+'''
 
 class ChatSessionView(APIView):
     """Manage chat sessions for personal statement help"""
@@ -547,30 +547,41 @@ def generate_editor_guideline( question,question_id: int,event_id: int = None) -
  
     if not question:
         return JsonResponse({"error": "question query param is required"}, status=400)
-    event_data = None
-    if event_id:
-        try:
-            from .models import Event  # 모델 경로는 프로젝트 구조에 맞게 조정
-            event = Event.objects.filter(id=event_id).first()
-            if event:
-                event_data = {
-                    "id": event.id,
-                    "name": event.name,
-                    "situation": event.situation,
-                    "task": event.task,
-                    "action": event.action,
-                    "result": event.result,
-                    "contribution": event.contribution,
-                }
-        except Exception as e:
-            print("Event fetch error:", e)
+
+    try:
+        from .models import EventSuggestion
+
+        suggestions = (
+            EventSuggestion.objects
+            .filter(question_id=question_id)
+            .select_related("event")
+        )
+        if not suggestions.exists():
+            event_data = None
+        else:
+            event_data = []
+            for suggestion in suggestions:
+                ev = suggestion.event
+                if ev:
+                    event_data.append({
+                        "id": ev.id,
+                        "name": ev.name,
+                        "situation": ev.situation,
+                        "task": ev.task,
+                        "action": ev.action,
+                        "result": ev.result,
+                        "contribution": ev.contribution,
+                    })
+
+    except Exception as e:
+        print("Event fetch error:", e)
             
     prompt_data = {
         "question_id": question_id,
         "question": question.strip(),
     }
     if event_data:
-        prompt_data["event"] = event_data
+        prompt_data["events"] = event_data
 
     guideline_prompt = _convert_to_paragraph(
         prompt_path="./ai/prompts/application-editor-guideline.txt",
@@ -609,3 +620,149 @@ def generate_editor_guideline( question,question_id: int,event_id: int = None) -
         )
 
 ###############################################################
+class EventSuggestionView(APIView):
+    @swagger_auto_schema(
+        operation_summary="이벤트 추천 저장",
+        operation_description="여러 개의 (question, event) 매핑을 받아서 EventSuggestion에 저장합니다. "
+                              "activity는 Event → Activity에서 자동으로 가져옵니다.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Items(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "question": openapi.Schema(type=openapi.TYPE_INTEGER, description="문항 ID"),
+                    "event": openapi.Schema(type=openapi.TYPE_INTEGER, description="이벤트 ID")
+                },
+                required=["question", "event"]
+            ),
+            example=[
+                {"question": 1, "event": 5},
+                {"question": 2, "event": 7}
+            ]
+        ),
+        responses={
+            201: openapi.Response(
+                description="저장된 EventSuggestion 목록",
+                examples={
+                    "application/json": {
+                        "saved": [
+                            {"id": 10, "question": 1, "event": 5, "activity": "대학신문"},
+                            {"id": 11, "question": 2, "event": 7, "activity": "AI 프로젝트"}
+                        ]
+                    }
+                }
+            ),
+            400: "잘못된 요청",
+        },
+        tags=["EventSuggestion"],
+    )
+    def post(self, request):
+        """
+        여러 개의 (question, event) 매핑을 받아서 EventSuggestion에 저장
+        activity는 Event -> Activity에서 가져와 자동 저장
+        """
+        data = request.data  # JSON 배열
+
+        if not isinstance(data, list):
+            return Response({"error": "List of mappings required"}, status=400)
+
+        created_suggestions = []
+        for item in data:
+            try:
+                q_id = item.get("question")
+                e_id = item.get("event")
+
+                if not q_id or not e_id:
+                    continue
+
+                question = QuestionList.objects.filter(id=q_id).first()
+                event = Event.objects.filter(id=e_id).select_related("activity").first()
+
+                if not question or not event:
+                    continue
+
+                # Event에서 연결된 Activity 이름 가져오기
+                activity_name = event.activity.activity_name if event.activity else None
+
+                suggestion, created = EventSuggestion.objects.update_or_create(
+                    question=question,
+                    event=event,
+                    defaults={"activity": activity_name},
+                )
+
+                created_suggestions.append({
+                    "id": suggestion.id,
+                    "question": suggestion.question.id,
+                    "event": suggestion.event.id,
+                    "activity": suggestion.activity
+                })
+
+            except Exception as e:
+                print("Error saving EventSuggestion:", e)
+
+        return Response({"saved": created_suggestions}, status=201)
+    
+class EventSuggestionListView(APIView):    
+    @swagger_auto_schema(
+        operation_summary="이벤트 추천 조회",
+        operation_description="특정 question_id에 연결된 EventSuggestion 목록을 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "question_id",
+                openapi.IN_QUERY,
+                description="조회할 문항 ID",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            )
+        ],
+        responses={
+            200: openapi.Response(
+                description="EventSuggestion 목록",
+                examples={
+                    "application/json": {
+                        "suggestions": [
+                            {
+                                "id": 10,
+                                "question": 1,
+                                "event": 5,
+                                "event_name": "사설 프로세스 개선",
+                                "activity": "대학신문"
+                            },
+                            {
+                                "id": 11,
+                                "question": 1,
+                                "event": 7,
+                                "event_name": "홈커밍 프로젝트",
+                                "activity": "대학신문"
+                            }
+                        ]
+                    }
+                }
+            ),
+            400: "잘못된 요청",
+            404: "해당 question_id에 추천 이벤트 없음",
+        },
+        tags=["EventSuggestion"],
+    )
+    def get(self, request,question_id):
+
+        suggestions = (
+            EventSuggestion.objects
+            .filter(question_id=question_id)
+            .select_related("event__activity")
+        )
+
+        if not suggestions.exists():
+            return Response({"error": "No suggestions found"}, status=404)
+
+        results = []
+        for s in suggestions:
+            results.append({
+                "id": s.id,
+                "question": s.question.id,
+                "event": s.event.id,
+                "event_name": s.event.event_name,
+                "activity": s.activity, 
+            })
+
+        return Response({"suggestions": results}, status=200)
