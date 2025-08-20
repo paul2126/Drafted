@@ -547,30 +547,42 @@ def generate_editor_guideline( question,question_id: int,event_id: int = None) -
  
     if not question:
         return JsonResponse({"error": "question query param is required"}, status=400)
-    event_data = None
-    if event_id:
-        try:
-            from .models import Event  # 모델 경로는 프로젝트 구조에 맞게 조정
-            event = Event.objects.filter(id=event_id).first()
-            if event:
-                event_data = {
-                    "id": event.id,
-                    "name": event.name,
-                    "situation": event.situation,
-                    "task": event.task,
-                    "action": event.action,
-                    "result": event.result,
-                    "contribution": event.contribution,
-                }
-        except Exception as e:
-            print("Event fetch error:", e)
+
+    try:
+        from .models import EventSuggestion
+
+        # 해당 question_id와 연결된 모든 event 불러오기
+        suggestions = (
+            EventSuggestion.objects
+            .filter(question_id=question_id)
+            .select_related("event")
+        )
+        if not suggestions.exists():
+            event_data = None
+        else:
+            event_data = []
+            for suggestion in suggestions:
+                ev = suggestion.event
+                if ev:
+                    event_data.append({
+                        "id": ev.id,
+                        "name": ev.name,
+                        "situation": ev.situation,
+                        "task": ev.task,
+                        "action": ev.action,
+                        "result": ev.result,
+                        "contribution": ev.contribution,
+                    })
+
+    except Exception as e:
+        print("Event fetch error:", e)
             
     prompt_data = {
         "question_id": question_id,
         "question": question.strip(),
     }
     if event_data:
-        prompt_data["event"] = event_data
+        prompt_data["events"] = event_data
 
     guideline_prompt = _convert_to_paragraph(
         prompt_path="./ai/prompts/application-editor-guideline.txt",
