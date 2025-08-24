@@ -219,7 +219,7 @@ class QuestionEventRecommendView(APIView):
         print("🔍 [DEBUG] ai_data type:", type(ai_data), ai_data)
         eventlist = [
             {
-                "id": idx + 1,
+                "id": e["event_id"],
                 "title": e["event_name"],
                 "activity": e["activity_name"],
                 "comment": e["comment"],
