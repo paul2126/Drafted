@@ -7,10 +7,10 @@ class ActivityListSerializer(serializers.Serializer):
     title = serializers.CharField(source="activity_name", help_text="활동 제목")
     category = serializers.CharField(help_text="활동 카테고리")
     startDate = serializers.DateTimeField(
-        source="start_date", required=False, help_text="활동 시작일"
+        source="start_date", required=False, allow_null=True,help_text="활동 시작일"
     )
     endDate = serializers.DateTimeField(
-        source="end_date", required=False, help_text="활동 종료일"
+        source="end_date", required=False,allow_null=True, help_text="활동 종료일"
     )
     lastVisit = serializers.DateTimeField(
         source="last_visit", help_text="마지막 확인일"
@@ -51,10 +51,10 @@ class ActivityCreateSerializer(serializers.Serializer):
     title = serializers.CharField(source="activity_name", help_text="활동 제목")
     category = serializers.CharField(help_text="활동 카테고리")
     startDate = serializers.DateTimeField(
-        source="start_date", required=False, help_text="활동 시작일"
+        source="start_date", required=False,allow_null=True, help_text="활동 시작일"
     )
     endDate = serializers.DateTimeField(
-        source="end_date", required=False, help_text="활동 종료일"
+        source="end_date", required=False,allow_null=True, help_text="활동 종료일"
     )
     role = serializers.CharField(
         source="position", required=False, help_text="활동 역할 및 직책"
@@ -71,11 +71,11 @@ class ActivityUpdateSerializer(serializers.Serializer):
         source="activity_name", required=False, help_text="활동 제목"
     )
     category = serializers.CharField(required=False, help_text="활동 카테고리")
-    startDate = serializers.DateTimeField(
-        source="start_date", required=False, help_text="활동 시작일"
+    start_date = serializers.DateTimeField(
+         required=False,allow_null=True, help_text="활동 시작일"
     )
-    endDate = serializers.DateTimeField(
-        source="end_date", required=False, help_text="활동 종료일"
+    end_date = serializers.DateTimeField(
+         required=False,allow_null=True, help_text="활동 종료일"
     )
     role = serializers.CharField(
         source="position",
