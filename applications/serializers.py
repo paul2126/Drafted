@@ -45,7 +45,7 @@ class ApplicationDetailQuestionSerializer(serializers.ModelSerializer):
 
 
 class EventSerializer(serializers.Serializer):
-    id = serializers.IntegerField(read_only=True, help_text="활동 ID")
+    id = serializers.IntegerField(help_text="활동 ID") # read_only=True 삭제
     title = serializers.CharField(help_text="활동명")
     activity = serializers.CharField(help_text="활동 진행 기관 (ex. 패스트캠퍼스)")
     comment = serializers.CharField(help_text="AI가 활동을 추천하는 이유 (추천 코멘트)")
