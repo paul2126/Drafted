@@ -39,7 +39,12 @@ class ActivityDetailSerializer(serializers.Serializer):
         source="position",
     )
     description = serializers.CharField(help_text="활동 설명")
-    keywords = serializers.CharField(help_text="활동 키워드")
+    keywords = serializers.ListField(                    
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+        help_text="활동 키워드"
+    )
     isFavorite = serializers.BooleanField(
         source="favorite", default=False, help_text="즐겨찾기 여부"
     )
@@ -60,7 +65,12 @@ class ActivityCreateSerializer(serializers.Serializer):
         source="position", required=False, help_text="활동 역할 및 직책"
     )
     description = serializers.CharField(required=False, help_text="활동 설명")
-    keywords = serializers.CharField(required=False, help_text="활동 키워드")
+    keywords = serializers.ListField(                    
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+        help_text="활동 키워드"
+    )
     isFavorite = serializers.BooleanField(
         source="favorite", default=False, help_text="즐겨찾기 여부"
     )
@@ -72,10 +82,10 @@ class ActivityUpdateSerializer(serializers.Serializer):
     )
     category = serializers.CharField(required=False, help_text="활동 카테고리")
     start_date = serializers.DateTimeField(
-         required=False,allow_null=True, help_text="활동 시작일"
+        required=False,allow_null=True, help_text="활동 시작일"
     )
     end_date = serializers.DateTimeField(
-         required=False,allow_null=True, help_text="활동 종료일"
+        required=False,allow_null=True, help_text="활동 종료일"
     )
     role = serializers.CharField(
         source="position",
