@@ -6,6 +6,7 @@ from rest_framework import status
 from django.conf import settings
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from utils.formatdate import _format_date
 from utils.supabase_utils import get_supabase_client, get_user_id_from_token
 from .serializers import (
     ActivityListSerializer,
@@ -146,8 +147,16 @@ class ActivityDetailView(APIView):
                 return Response(
                     {"error": "Activity not found"}, status=status.HTTP_404_NOT_FOUND
                 )
+            activity = result.data[0]
+            for field in ["start_date", "end_date", "created_at", "updated_at"]:
+                activity[field] = _format_date(activity.get(field))
 
-            return Response(result.data, status=status.HTTP_200_OK)
+            for ev in activity.get("events", []):
+                for f in ["start_date", "end_date", "created_at", "updated_at"]:
+                    if f in ev:
+                        ev[f] = _format_date(ev[f])
+
+            return Response(activity, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(
