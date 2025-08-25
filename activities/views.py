@@ -138,7 +138,7 @@ class ActivityDetailView(APIView):
             )
             # Call stored procedure - automatically updates last_visit
             result = supabase.rpc(
-                "get_activity_detail",
+                "get_activity_details",
                 {"p_activity_id": activity_id, "p_user_id": user_id},
             ).execute()
 
