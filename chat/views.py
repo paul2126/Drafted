@@ -121,7 +121,7 @@ def _generate_ai_response(
         messages.append({"role": "user", "content": user_message})
 
         # Generate response using OpenAI
-        response = client.chat.completions.stream(
+        response = client.chat.completions.create(
             model="gpt-4-turbo-preview",
             messages=messages,
             max_tokens=1000,

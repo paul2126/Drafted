@@ -138,7 +138,7 @@ class ActivityDetailView(APIView):
             )
             # Call stored procedure - automatically updates last_visit
             result = supabase.rpc(
-                "get_activity_details",
+                "get_activity_detail",
                 {"p_activity_id": activity_id, "p_user_id": user_id},
             ).execute()
 
@@ -146,6 +146,7 @@ class ActivityDetailView(APIView):
                 return Response(
                     {"error": "Activity not found"}, status=status.HTTP_404_NOT_FOUND
                 )
+
             return Response(result.data, status=status.HTTP_200_OK)
 
         except Exception as e:
