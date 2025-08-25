@@ -216,7 +216,8 @@ class ActivityDetailView(APIView):
         # Convert datetime objects to ISO format for Supabase
         update_data = {}
         for key, value in validated_data.items():
-            if value is not None:
+                if value is None and key not in ["start_date", "end_date"]:
+                    continue
                 if hasattr(value, "isoformat"):  # datetime objects
                     update_data[key] = value.isoformat()
                 else:
