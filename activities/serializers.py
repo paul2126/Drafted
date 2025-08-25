@@ -33,8 +33,8 @@ class ActivityDetailSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     title = serializers.CharField(source="activity_name", help_text="활동 제목")
     category = serializers.CharField(help_text="활동 카테고리")
-    startDate = serializers.DateTimeField(source="start_date", help_text="활동 시작일")
-    endDate = serializers.DateTimeField(source="end_date", help_text="활동 종료일")
+    startDate = serializers.DateTimeField(source="start_date", help_text="활동 시작일",allow_null=True, required=False)
+    endDate = serializers.DateTimeField(source="end_date", help_text="활동 종료일",allow_null=True, required=False)
     role = serializers.CharField(
         source="position",
     )
