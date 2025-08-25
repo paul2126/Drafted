@@ -81,7 +81,11 @@ class ActivityUpdateSerializer(serializers.Serializer):
         source="position",
     )
     description = serializers.CharField(required=False, help_text="활동 설명")
-    keywords = serializers.CharField(required=False, help_text="활동 키워드")
+    keywords = serializers.ListField(                    
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True
+    )
     isFavorite = serializers.BooleanField(
         source="favorite", default=False, required=False, help_text="즐겨찾기 여부"
     )
